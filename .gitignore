@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pygame & testing artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local save game
+savegame.json
+
+# Internal agent logs / scratch
+.agents/
+.system_generated/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# OS artifacts
+.DS_Store
+Thumbs.db

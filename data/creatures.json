@@ -1,0 +1,434 @@
+[
+  {
+    "id": 1,
+    "name": "Bulbasaur",
+    "types": ["Grass", "Poison"],
+    "base_stats": { "hp": 45, "attack": 49, "defense": 49, "sp_attack": 65, "sp_defense": 65, "speed": 45 },
+    "learnable_moves": [
+      { "move_id": "tackle", "level": 1 },
+      { "move_id": "growl", "level": 3 },
+      { "move_id": "vine_whip", "level": 7 },
+      { "move_id": "poison_powder", "level": 13 },
+      { "move_id": "razor_leaf", "level": 20 },
+      { "move_id": "solar_beam", "level": 32 }
+    ],
+    "evolution": { "into": 2, "level": 16 },
+    "catch_rate": 45,
+    "base_xp": 64,
+    "sprite_front": "bulbasaur_front.png",
+    "sprite_back": "bulbasaur_back.png"
+  },
+  {
+    "id": 2,
+    "name": "Ivysaur",
+    "types": ["Grass", "Poison"],
+    "base_stats": { "hp": 60, "attack": 62, "defense": 63, "sp_attack": 80, "sp_defense": 80, "speed": 60 },
+    "learnable_moves": [
+      { "move_id": "tackle", "level": 1 },
+      { "move_id": "vine_whip", "level": 1 },
+      { "move_id": "poison_powder", "level": 13 },
+      { "move_id": "razor_leaf", "level": 22 },
+      { "move_id": "solar_beam", "level": 38 }
+    ],
+    "evolution": { "into": 3, "level": 32 },
+    "catch_rate": 45,
+    "base_xp": 142,
+    "sprite_front": "ivysaur_front.png",
+    "sprite_back": "ivysaur_back.png"
+  },
+  {
+    "id": 3,
+    "name": "Venusaur",
+    "types": ["Grass", "Poison"],
+    "base_stats": { "hp": 80, "attack": 82, "defense": 83, "sp_attack": 100, "sp_defense": 100, "speed": 80 },
+    "learnable_moves": [
+      { "move_id": "vine_whip", "level": 1 },
+      { "move_id": "razor_leaf", "level": 22 },
+      { "move_id": "solar_beam", "level": 42 },
+      { "move_id": "sludge_bomb", "level": 48 }
+    ],
+    "evolution": null,
+    "catch_rate": 45,
+    "base_xp": 236,
+    "sprite_front": "venusaur_front.png",
+    "sprite_back": "venusaur_back.png"
+  },
+  {
+    "id": 4,
+    "name": "Charmander",
+    "types": ["Fire"],
+    "base_stats": { "hp": 39, "attack": 52, "defense": 43, "sp_attack": 60, "sp_defense": 50, "speed": 65 },
+    "learnable_moves": [
+      { "move_id": "scratch", "level": 1 },
+      { "move_id": "growl", "level": 1 },
+      { "move_id": "ember", "level": 7 },
+      { "move_id": "bite", "level": 13 },
+      { "move_id": "flamethrower", "level": 25 },
+      { "move_id": "fire_blast", "level": 38 }
+    ],
+    "evolution": { "into": 5, "level": 16 },
+    "catch_rate": 45,
+    "base_xp": 62,
+    "sprite_front": "charmander_front.png",
+    "sprite_back": "charmander_back.png"
+  },
+  {
+    "id": 5,
+    "name": "Charmeleon",
+    "types": ["Fire"],
+    "base_stats": { "hp": 58, "attack": 64, "defense": 58, "sp_attack": 80, "sp_defense": 65, "speed": 80 },
+    "learnable_moves": [
+      { "move_id": "scratch", "level": 1 },
+      { "move_id": "ember", "level": 1 },
+      { "move_id": "bite", "level": 13 },
+      { "move_id": "flamethrower", "level": 28 },
+      { "move_id": "fire_blast", "level": 42 }
+    ],
+    "evolution": { "into": 6, "level": 36 },
+    "catch_rate": 45,
+    "base_xp": 142,
+    "sprite_front": "charmeleon_front.png",
+    "sprite_back": "charmeleon_back.png"
+  },
+  {
+    "id": 6,
+    "name": "Charizard",
+    "types": ["Fire", "Flying"],
+    "base_stats": { "hp": 78, "attack": 84, "defense": 78, "sp_attack": 109, "sp_defense": 85, "speed": 100 },
+    "learnable_moves": [
+      { "move_id": "wing_attack", "level": 36 },
+      { "move_id": "flamethrower", "level": 36 },
+      { "move_id": "fire_blast", "level": 46 },
+      { "move_id": "dragon_rage", "level": 54 }
+    ],
+    "evolution": null,
+    "catch_rate": 45,
+    "base_xp": 240,
+    "sprite_front": "charizard_front.png",
+    "sprite_back": "charizard_back.png"
+  },
+  {
+    "id": 7,
+    "name": "Squirtle",
+    "types": ["Water"],
+    "base_stats": { "hp": 44, "attack": 48, "defense": 65, "sp_attack": 50, "sp_defense": 64, "speed": 43 },
+    "learnable_moves": [
+      { "move_id": "tackle", "level": 1 },
+      { "move_id": "tail_whip", "level": 1 },
+      { "move_id": "bubble", "level": 7 },
+      { "move_id": "water_gun", "level": 12 },
+      { "move_id": "bite", "level": 18 },
+      { "move_id": "surf", "level": 28 },
+      { "move_id": "hydro_pump", "level": 40 }
+    ],
+    "evolution": { "into": 8, "level": 16 },
+    "catch_rate": 45,
+    "base_xp": 63,
+    "sprite_front": "squirtle_front.png",
+    "sprite_back": "squirtle_back.png"
+  },
+  {
+    "id": 8,
+    "name": "Wartortle",
+    "types": ["Water"],
+    "base_stats": { "hp": 59, "attack": 63, "defense": 80, "sp_attack": 65, "sp_defense": 80, "speed": 58 },
+    "learnable_moves": [
+      { "move_id": "water_gun", "level": 1 },
+      { "move_id": "bite", "level": 19 },
+      { "move_id": "surf", "level": 30 },
+      { "move_id": "hydro_pump", "level": 44 }
+    ],
+    "evolution": { "into": 9, "level": 36 },
+    "catch_rate": 45,
+    "base_xp": 142,
+    "sprite_front": "wartortle_front.png",
+    "sprite_back": "wartortle_back.png"
+  },
+  {
+    "id": 9,
+    "name": "Blastoise",
+    "types": ["Water"],
+    "base_stats": { "hp": 79, "attack": 83, "defense": 100, "sp_attack": 85, "sp_defense": 105, "speed": 78 },
+    "learnable_moves": [
+      { "move_id": "surf", "level": 36 },
+      { "move_id": "hydro_pump", "level": 48 },
+      { "move_id": "ice_beam", "level": 55 },
+      { "move_id": "earthquake", "level": 60 }
+    ],
+    "evolution": null,
+    "catch_rate": 45,
+    "base_xp": 239,
+    "sprite_front": "blastoise_front.png",
+    "sprite_back": "blastoise_back.png"
+  },
+  {
+    "id": 16,
+    "name": "Pidgey",
+    "types": ["Normal", "Flying"],
+    "base_stats": { "hp": 40, "attack": 45, "defense": 40, "sp_attack": 35, "sp_defense": 35, "speed": 56 },
+    "learnable_moves": [
+      { "move_id": "tackle", "level": 1 },
+      { "move_id": "gust", "level": 5 },
+      { "move_id": "quick_attack", "level": 9 },
+      { "move_id": "wing_attack", "level": 17 }
+    ],
+    "evolution": { "into": 17, "level": 18 },
+    "catch_rate": 255,
+    "base_xp": 50,
+    "sprite_front": "pidgey_front.png",
+    "sprite_back": "pidgey_back.png"
+  },
+  {
+    "id": 17,
+    "name": "Pidgeotto",
+    "types": ["Normal", "Flying"],
+    "base_stats": { "hp": 63, "attack": 60, "defense": 55, "sp_attack": 50, "sp_defense": 50, "speed": 71 },
+    "learnable_moves": [
+      { "move_id": "gust", "level": 1 },
+      { "move_id": "quick_attack", "level": 1 },
+      { "move_id": "wing_attack", "level": 19 },
+      { "move_id": "slam", "level": 28 }
+    ],
+    "evolution": { "into": 18, "level": 36 },
+    "catch_rate": 120,
+    "base_xp": 122,
+    "sprite_front": "pidgeotto_front.png",
+    "sprite_back": "pidgeotto_back.png"
+  },
+  {
+    "id": 18,
+    "name": "Pidgeot",
+    "types": ["Normal", "Flying"],
+    "base_stats": { "hp": 83, "attack": 80, "defense": 75, "sp_attack": 70, "sp_defense": 70, "speed": 101 },
+    "learnable_moves": [
+      { "move_id": "wing_attack", "level": 36 },
+      { "move_id": "slam", "level": 40 },
+      { "move_id": "hyper_beam", "level": 52 }
+    ],
+    "evolution": null,
+    "catch_rate": 45,
+    "base_xp": 216,
+    "sprite_front": "pidgeot_front.png",
+    "sprite_back": "pidgeot_back.png"
+  },
+  {
+    "id": 19,
+    "name": "Rattata",
+    "types": ["Normal"],
+    "base_stats": { "hp": 30, "attack": 56, "defense": 35, "sp_attack": 25, "sp_defense": 35, "speed": 72 },
+    "learnable_moves": [
+      { "move_id": "tackle", "level": 1 },
+      { "move_id": "tail_whip", "level": 1 },
+      { "move_id": "quick_attack", "level": 4 },
+      { "move_id": "bite", "level": 10 },
+      { "move_id": "hyper_beam", "level": 30 }
+    ],
+    "evolution": { "into": 20, "level": 20 },
+    "catch_rate": 255,
+    "base_xp": 51,
+    "sprite_front": "rattata_front.png",
+    "sprite_back": "rattata_back.png"
+  },
+  {
+    "id": 20,
+    "name": "Raticate",
+    "types": ["Normal"],
+    "base_stats": { "hp": 55, "attack": 81, "defense": 60, "sp_attack": 50, "sp_defense": 70, "speed": 97 },
+    "learnable_moves": [
+      { "move_id": "quick_attack", "level": 1 },
+      { "move_id": "bite", "level": 1 },
+      { "move_id": "slam", "level": 24 },
+      { "move_id": "hyper_beam", "level": 38 }
+    ],
+    "evolution": null,
+    "catch_rate": 127,
+    "base_xp": 145,
+    "sprite_front": "raticate_front.png",
+    "sprite_back": "raticate_back.png"
+  },
+  {
+    "id": 25,
+    "name": "Pikachu",
+    "types": ["Electric"],
+    "base_stats": { "hp": 35, "attack": 55, "defense": 40, "sp_attack": 50, "sp_defense": 50, "speed": 90 },
+    "learnable_moves": [
+      { "move_id": "thunder_shock", "level": 1 },
+      { "move_id": "growl", "level": 1 },
+      { "move_id": "tail_whip", "level": 4 },
+      { "move_id": "thunder_wave", "level": 8 },
+      { "move_id": "quick_attack", "level": 11 },
+      { "move_id": "thunderbolt", "level": 26 },
+      { "move_id": "thunder", "level": 41 }
+    ],
+    "evolution": { "into": 26, "level": 26 },
+    "catch_rate": 190,
+    "base_xp": 112,
+    "sprite_front": "pikachu_front.png",
+    "sprite_back": "pikachu_back.png"
+  },
+  {
+    "id": 26,
+    "name": "Raichu",
+    "types": ["Electric"],
+    "base_stats": { "hp": 60, "attack": 90, "defense": 55, "sp_attack": 90, "sp_defense": 80, "speed": 110 },
+    "learnable_moves": [
+      { "move_id": "thunderbolt", "level": 1 },
+      { "move_id": "thunder", "level": 1 },
+      { "move_id": "slam", "level": 30 },
+      { "move_id": "hyper_beam", "level": 45 }
+    ],
+    "evolution": null,
+    "catch_rate": 75,
+    "base_xp": 218,
+    "sprite_front": "raichu_front.png",
+    "sprite_back": "raichu_back.png"
+  },
+  {
+    "id": 74,
+    "name": "Geodude",
+    "types": ["Rock", "Ground"],
+    "base_stats": { "hp": 40, "attack": 80, "defense": 100, "sp_attack": 30, "sp_defense": 30, "speed": 20 },
+    "learnable_moves": [
+      { "move_id": "tackle", "level": 1 },
+      { "move_id": "rock_throw", "level": 11 },
+      { "move_id": "rock_slide", "level": 21 },
+      { "move_id": "earthquake", "level": 31 }
+    ],
+    "evolution": { "into": 75, "level": 25 },
+    "catch_rate": 255,
+    "base_xp": 60,
+    "sprite_front": "geodude_front.png",
+    "sprite_back": "geodude_back.png"
+  },
+  {
+    "id": 75,
+    "name": "Graveler",
+    "types": ["Rock", "Ground"],
+    "base_stats": { "hp": 55, "attack": 95, "defense": 115, "sp_attack": 45, "sp_defense": 45, "speed": 35 },
+    "learnable_moves": [
+      { "move_id": "rock_throw", "level": 1 },
+      { "move_id": "rock_slide", "level": 25 },
+      { "move_id": "earthquake", "level": 36 }
+    ],
+    "evolution": { "into": 76, "level": 38 },
+    "catch_rate": 120,
+    "base_xp": 137,
+    "sprite_front": "graveler_front.png",
+    "sprite_back": "graveler_back.png"
+  },
+  {
+    "id": 76,
+    "name": "Golem",
+    "types": ["Rock", "Ground"],
+    "base_stats": { "hp": 80, "attack": 120, "defense": 130, "sp_attack": 55, "sp_defense": 65, "speed": 45 },
+    "learnable_moves": [
+      { "move_id": "rock_slide", "level": 38 },
+      { "move_id": "earthquake", "level": 42 },
+      { "move_id": "hyper_beam", "level": 55 }
+    ],
+    "evolution": null,
+    "catch_rate": 45,
+    "base_xp": 223,
+    "sprite_front": "golem_front.png",
+    "sprite_back": "golem_back.png"
+  },
+  {
+    "id": 92,
+    "name": "Gastly",
+    "types": ["Ghost", "Poison"],
+    "base_stats": { "hp": 30, "attack": 35, "defense": 30, "sp_attack": 100, "sp_defense": 35, "speed": 80 },
+    "learnable_moves": [
+      { "move_id": "confusion", "level": 1 },
+      { "move_id": "sludge_bomb", "level": 12 },
+      { "move_id": "shadow_ball", "level": 20 },
+      { "move_id": "psychic", "level": 30 }
+    ],
+    "evolution": { "into": 93, "level": 25 },
+    "catch_rate": 190,
+    "base_xp": 62,
+    "sprite_front": "gastly_front.png",
+    "sprite_back": "gastly_back.png"
+  },
+  {
+    "id": 93,
+    "name": "Haunter",
+    "types": ["Ghost", "Poison"],
+    "base_stats": { "hp": 45, "attack": 50, "defense": 45, "sp_attack": 115, "sp_defense": 55, "speed": 95 },
+    "learnable_moves": [
+      { "move_id": "shadow_ball", "level": 20 },
+      { "move_id": "sludge_bomb", "level": 28 },
+      { "move_id": "psychic", "level": 35 }
+    ],
+    "evolution": { "into": 94, "level": 38 },
+    "catch_rate": 90,
+    "base_xp": 142,
+    "sprite_front": "haunter_front.png",
+    "sprite_back": "haunter_back.png"
+  },
+  {
+    "id": 94,
+    "name": "Gengar",
+    "types": ["Ghost", "Poison"],
+    "base_stats": { "hp": 60, "attack": 65, "defense": 60, "sp_attack": 130, "sp_defense": 75, "speed": 110 },
+    "learnable_moves": [
+      { "move_id": "shadow_ball", "level": 38 },
+      { "move_id": "sludge_bomb", "level": 42 },
+      { "move_id": "psychic", "level": 48 },
+      { "move_id": "hyper_beam", "level": 58 }
+    ],
+    "evolution": null,
+    "catch_rate": 45,
+    "base_xp": 225,
+    "sprite_front": "gengar_front.png",
+    "sprite_back": "gengar_back.png"
+  },
+  {
+    "id": 129,
+    "name": "Magikarp",
+    "types": ["Water"],
+    "base_stats": { "hp": 20, "attack": 10, "defense": 55, "sp_attack": 15, "sp_defense": 20, "speed": 80 },
+    "learnable_moves": [
+      { "move_id": "tackle", "level": 15 }
+    ],
+    "evolution": { "into": 130, "level": 20 },
+    "catch_rate": 255,
+    "base_xp": 40,
+    "sprite_front": "magikarp_front.png",
+    "sprite_back": "magikarp_back.png"
+  },
+  {
+    "id": 130,
+    "name": "Gyarados",
+    "types": ["Water", "Flying"],
+    "base_stats": { "hp": 95, "attack": 125, "defense": 79, "sp_attack": 60, "sp_defense": 100, "speed": 81 },
+    "learnable_moves": [
+      { "move_id": "bite", "level": 20 },
+      { "move_id": "surf", "level": 25 },
+      { "move_id": "hydro_pump", "level": 38 },
+      { "move_id": "hyper_beam", "level": 50 }
+    ],
+    "evolution": null,
+    "catch_rate": 45,
+    "base_xp": 189,
+    "sprite_front": "gyarados_front.png",
+    "sprite_back": "gyarados_back.png"
+  },
+  {
+    "id": 143,
+    "name": "Snorlax",
+    "types": ["Normal"],
+    "base_stats": { "hp": 160, "attack": 110, "defense": 65, "sp_attack": 65, "sp_defense": 110, "speed": 30 },
+    "learnable_moves": [
+      { "move_id": "tackle", "level": 1 },
+      { "move_id": "bite", "level": 8 },
+      { "move_id": "body_slam", "level": 15 },
+      { "move_id": "rest", "level": 25 },
+      { "move_id": "hyper_beam", "level": 40 }
+    ],
+    "evolution": null,
+    "catch_rate": 25,
+    "base_xp": 189,
+    "sprite_front": "snorlax_front.png",
+    "sprite_back": "snorlax_back.png"
+  }
+]
