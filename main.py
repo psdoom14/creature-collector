@@ -17,8 +17,10 @@ def main():
         run_terminal()
         return
 
-    # Check if a display is available for graphical mode
-    if os.environ.get("DISPLAY") is None and os.environ.get("WAYLAND_DISPLAY") is None:
+    # Only Linux signals a desktop through DISPLAY / WAYLAND_DISPLAY; Windows and macOS
+    # always have one, so the check must not run there.
+    if sys.platform.startswith("linux") and not (
+            os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
         print("\nNo graphical display detected in environment.")
         print("Launching terminal prototype instead (or pass --cli)...")
         from terminal_demo import main as run_terminal
