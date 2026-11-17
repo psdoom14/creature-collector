@@ -661,11 +661,6 @@ class TextBox:
         self.timer = 0.0
         self.is_finished_typing = True
 
-    def queue_message(self, message: str) -> None:
-        self.message_queue.append(message)
-        if not self.target_text:
-            self._next_message()
-
     def set_message(self, message: str) -> None:
         self.message_queue.clear()
         self.target_text = message

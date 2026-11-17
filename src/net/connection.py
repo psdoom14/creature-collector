@@ -267,8 +267,3 @@ def local_ip_addresses() -> List[str]:
         if not address.startswith("127.") and address not in addresses:
             addresses.append(address)
     return addresses or ["127.0.0.1"]
-
-
-def local_ip_address() -> str:
-    """The main local-network address (see ``local_ip_addresses``)."""
-    return local_ip_addresses()[0]

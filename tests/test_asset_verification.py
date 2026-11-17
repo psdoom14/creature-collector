@@ -6,10 +6,9 @@ Verifies:
    - Valid PNG format
    - Exact 64x64 dimensions
    - Transparent alpha channel
-2. 12 16x16 GBA metatiles in assets/tiles/:
-   - grass.png, tall_grass.png, tall_grass_overlay.png, path.png, tree.png
+2. 8 16x16 GBA tiles in assets/tiles/:
+   - grass.png, tall_grass.png, path.png, tree.png
    - 4 animated water tiles (water_0.png to water_3.png)
-   - 3 PokeCenter facade tiles (pokecenter_left.png, pokecenter_center.png, pokecenter_right.png)
    - Exact 16x16 dimensions & PNG format
 3. 12 trainer walk cycle frames in assets/characters/trainer/:
    - 4 directions (down, up, left, right) x 3 animation states (idle, walk1, walk2)
@@ -123,16 +122,12 @@ class TestAssetVerification(unittest.TestCase):
         expected_tiles = [
             "grass.png",
             "tall_grass.png",
-            "tall_grass_overlay.png",
             "path.png",
             "tree.png",
             "water_0.png",
             "water_1.png",
             "water_2.png",
             "water_3.png",
-            "pokecenter_left.png",
-            "pokecenter_center.png",
-            "pokecenter_right.png",
         ]
         missing_tiles = []
         for tile_name in expected_tiles:
@@ -147,20 +142,16 @@ class TestAssetVerification(unittest.TestCase):
         )
 
     def test_gba_tiles_dimensions_and_png_format(self):
-        """Verify all 12 GBA tiles are valid 16x16 PNG images."""
+        """Verify all 8 GBA tiles are valid 16x16 PNG images."""
         expected_tiles = [
             "grass.png",
             "tall_grass.png",
-            "tall_grass_overlay.png",
             "path.png",
             "tree.png",
             "water_0.png",
             "water_1.png",
             "water_2.png",
             "water_3.png",
-            "pokecenter_left.png",
-            "pokecenter_center.png",
-            "pokecenter_right.png",
         ]
         invalid_tiles = []
         for tile_name in expected_tiles:

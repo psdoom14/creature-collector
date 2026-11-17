@@ -57,10 +57,6 @@ class TileArt:
             return None
 
     @classmethod
-    def _base_grass(cls) -> pygame.Surface:
-        return cls.get("grass").copy()
-
-    @classmethod
     def _draw(cls, key: str) -> pygame.Surface:
         s = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
         painter = getattr(cls, f"_paint_{key}", None)

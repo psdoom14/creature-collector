@@ -18,7 +18,6 @@ The rest of the documentation:
 - **[README.md](README.md):** how to run and play.
 - **[docs/OOP.md](docs/OOP.md):** the four pillars with line links, design patterns and UML.
 - **[docs/PLAN.md](docs/PLAN.md):** the original code review (bugs B1–B14 and design flaws) and a log of what each phase changed.
-- `docs/visual_audit.md` and `docs/prompt_draft.md`: earlier planning notes from before the rebuild, kept for history. Their findings are all addressed.
 
 ## 2. Rules not to break
 

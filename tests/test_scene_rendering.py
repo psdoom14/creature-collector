@@ -172,22 +172,19 @@ class TestSceneRendering(unittest.TestCase):
 
         dex_scene.on_exit()
 
-    def test_sprite_renderer_returns_valid_surfaces_and_handles_dual_signatures(self):
-        """Verify SpriteRenderer returns genuine surfaces across both legacy and new signatures."""
-        # 1. New Contract signature: get_creature_sprite(name, size, is_back, creature_id)
-        surf_new = SpriteRenderer.get_creature_sprite("Bulbasaur", (64, 64), False)
-        self.assertIsInstance(surf_new, pygame.Surface)
-        self.assertEqual(surf_new.get_size(), (64, 64))
+    def test_sprite_renderer_returns_valid_surfaces(self):
+        """SpriteRenderer returns real surfaces at the size asked for, front and back."""
+        front = SpriteRenderer.get_creature_sprite(1, size=(64, 64))
+        self.assertIsInstance(front, pygame.Surface)
+        self.assertEqual(front.get_size(), (64, 64))
 
-        # 2. Legacy signature: get_creature_sprite(species_id, name, primary_type, is_back, size)
-        surf_legacy = SpriteRenderer.get_creature_sprite(4, "Charmander", "Fire", True, (56, 56))
-        self.assertIsInstance(surf_legacy, pygame.Surface)
-        self.assertEqual(surf_legacy.get_size(), (56, 56))
+        back = SpriteRenderer.get_creature_sprite(4, "Charmander", "Fire", is_back=True, size=(56, 56))
+        self.assertEqual(back.get_size(), (56, 56))
+        self.assertIs(SpriteRenderer.get_creature_sprite(4, "Charmander", "Fire", is_back=True, size=(56, 56)),
+                      back, "cached")
 
-        # 3. Keyword arguments
-        surf_kwargs = SpriteRenderer.get_creature_sprite(name="Squirtle", size=(32, 32), is_back=False)
-        self.assertIsInstance(surf_kwargs, pygame.Surface)
-        self.assertEqual(surf_kwargs.get_size(), (32, 32))
+        missing = SpriteRenderer.get_creature_sprite(999, "Nobody", "Water", size=(32, 32))
+        self.assertEqual(missing.get_size(), (32, 32), "a missing sprite falls back to a drawn badge")
 
     def test_sprite_renderer_all_25_species_front_and_back(self):
         """Verify SpriteRenderer successfully renders front and back views for all 25 species."""
@@ -195,14 +192,13 @@ class TestSceneRendering(unittest.TestCase):
         self.assertEqual(len(creatures), 25)
 
         for c in creatures:
-            name = c["name"]
             # Front view
-            front_surf = SpriteRenderer.get_creature_sprite(name, size=(64, 64), is_back=False)
+            front_surf = SpriteRenderer.get_creature_sprite(c["id"], size=(64, 64), is_back=False)
             self.assertIsInstance(front_surf, pygame.Surface)
             self.assertEqual(front_surf.get_size(), (64, 64))
 
             # Back view
-            back_surf = SpriteRenderer.get_creature_sprite(name, size=(64, 64), is_back=True)
+            back_surf = SpriteRenderer.get_creature_sprite(c["id"], size=(64, 64), is_back=True)
             self.assertIsInstance(back_surf, pygame.Surface)
             self.assertEqual(back_surf.get_size(), (64, 64))
 
