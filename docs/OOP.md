@@ -45,8 +45,8 @@ flowchart LR
 
 | Concept | Example |
 |---|---|
-| Classes | 126 in total: 73 in the game rules (`src/model/`), the rest in the screens, including the 32-class animation and transition hierarchies |
-| Objects | every creature, move, item, trainer, map and battle is an object built from data at runtime, e.g. [DataLoader.get_creature()](../src/data_loader.py#L112) |
+| Classes | 146 in total: 75 in the game rules (`src/model/`), 15 in networking (`src/net/`), the rest in the screens (including the 32-class animation and transition hierarchies) |
+| Objects | every creature, move, item, trainer, map and battle is an object built from data at runtime, e.g. [DataLoader.get_creature()](../src/data_loader.py#L116) |
 | Constructors that enforce valid objects | [Creature.__init__](../src/model/creature.py#L51) clamps the level and HP; [Party.__init__](../src/model/trainer.py#L44) refuses more than 6 creatures |
 | Constructor chaining | [TrainerBattle.__init__](../src/model/battle.py#L517) calls `super().__init__()`, and `GymBattle` chains onto that |
 | Class vs instance attributes | `Party.MAX_PARTY_SIZE` and `Creature._uid_counter` belong to the class; `_hp` and `_level` belong to each object |
@@ -64,7 +64,7 @@ flowchart LR
 | `Creature` | `_hp`, `_level`, `_xp`, `_moves`, `_status`, `_stat_stages` ([constructor](../src/model/creature.py#L56)) | [take_damage()](../src/model/creature.py#L228), [heal()](../src/model/creature.py#L236), [gain_xp()](../src/model/creature.py#L282), [learn_move()](../src/model/creature.py#L306), [apply_status()](../src/model/creature.py#L263) | HP stays between 0 and max; fainted creatures can't be healed, only revived; at most 4 moves; type immunities |
 | `Move` | `_current_pp` | [use()](../src/model/move.py#L86), [restore_pp()](../src/model/move.py#L93) | PP never below 0 or above max |
 | `Item` | `_quantity` | [consume()](../src/model/item.py#L77), [add_stock()](../src/model/item.py#L72) | stock can't go negative |
-| `Bag` | `_items` dict | [add()](../src/model/bag.py#L30), [use()](../src/model/bag.py#L56) | stacks merge by id; empty stacks disappear |
+| `Bag` | `_items` dict | [add()](../src/model/bag.py#L30), [use()](../src/model/bag.py#L65) | stacks merge by id; empty stacks disappear |
 | `Party` | `_creatures` list, exposed as a tuple ([creatures](../src/model/trainer.py#L17)) | [add()](../src/model/trainer.py#L51), [swap()](../src/model/trainer.py#L64) | at most 6 creatures |
 | `Trainer` | `_money`, `_party`, `_bag`, `_pc` | [spend()](../src/model/trainer.py#L151), [earn()](../src/model/trainer.py#L148), [receive_creature()](../src/model/trainer.py#L165) | can't overspend; a full party sends new catches to the PC |
 | `Pokedex` | `_seen`, `_caught` sets, exposed as frozensets | [register_caught()](../src/model/pokedex.py#L35) | catching also marks a species as seen |
@@ -114,7 +114,12 @@ StatusCondition ──┬─ _ChipDamageStatus ─┬─ Burn
                   └─ Sleep
 MoveEffect ───────┬─ InflictStatus ─ HealUser ─ ChangeStat
 Battle ───────────┬─ WildBattle
-                  └─ TrainerBattle ── GymBattle
+                  ├─ TrainerBattle ── GymBattle
+                  └─ LinkBattle      two people choose; no AI
+Connection ───────┬─ SocketConnection (Wi-Fi)
+                  └─ MemoryConnection (tests)
+LinkSession ──────┬─ HostSession     runs the LinkBattle
+                  └─ GuestSession    plays back the host's events
 BattleAI ─────────┬─ RandomAI ─ SmartAI
 Interactable ─────┬─ Sign
                   ├─ StarterBall
@@ -161,9 +166,11 @@ Proof in tests: [TestInheritance](../tests/test_oop_pillars.py#L91), [test_train
 | [Battle._resolve_faints](../src/model/battle.py#L427) | `self._on_opponent_fainted()` | `WildBattle` ends the battle; `TrainerBattle` sends out the next creature or pays the prize |
 | [Explorer.interact](../src/model/world.py#L282) | `entity.interact(state, facing)` | a sign shows text, an NPC turns and talks, the healer heals, the professor gives a gift, a starter ball offers its creature, a trainer starts a battle |
 | [Explorer.spotted_by](../src/model/world.py#L288) | `entity.notices(...)` | `False` for everything except `TrainerNPC`, which checks its line of sight |
-| [OverworldScene._start_trainer_battle](../src/ui/overworld_scene.py#L313) | `trainer.build_battle(...)` | `TrainerNPC` → `TrainerBattle` + `RandomAI`; `GymLeader` → `GymBattle` + `SmartAI`; `RivalTrainer` → its starter-led team |
+| [OverworldScene._start_trainer_battle](../src/ui/overworld_scene.py#L322) | `trainer.build_battle(...)` | `TrainerNPC` → `TrainerBattle` + `RandomAI`; `GymLeader` → `GymBattle` + `SmartAI`; `RivalTrainer` → its starter-led team |
 | [BagScene](../src/ui/bag_scene.py#L80) | `item.usable_in_field` | `True` for potions; `CatchBall` overrides it to `False` |
 | `engine.current_scene.update() / draw()` | `scene.draw(surface)` | each screen draws itself |
+| [LinkBattleScene._submit](../src/ui/link_scene.py#L192) | `session.submit(action)` / `session.poll()` | `HostSession` resolves the turn itself; `GuestSession` sends the choice over the network and plays back what comes back. `LinkBattleScene` (a `BattleScene` subclass) never knows which it has |
+| [LinkSession._send](../src/net/session.py#L64) | `connection.send(message)` | `SocketConnection` writes to Wi-Fi; `MemoryConnection` hands it to the other player in the same process (tests) |
 | [BattleScene._mods](../src/ui/battle_scene.py#L392) | `anim.modify(side, mods)` / `anim.draw()` | a hit flickers the target, a faint drops it, a send-out grows it from a white silhouette, a ball hides it |
 | [MoveAnimation.create](../src/ui/animations.py#L361) | `MoveAnimation.create(type, category, side)` | a self-registering class per move type: Fire embers, Water bubbles, Grass leaves, an Electric bolt, a Ground quake... |
 | [Transition.draw](../src/ui/transitions.py#L31) | `transition.cover(surface, p)` | wild battles close with sweeping bars, trainer battles with a shrinking circle |
@@ -182,6 +189,8 @@ Proof in tests: [TestPolymorphism](../tests/test_oop_pillars.py#L114).
 | **Template Method** | [Item.use()](../src/model/item.py#L99) (check → consume → `_apply()`); `Battle`'s turn calls the hooks `_on_opponent_fainted()`, `_xp_multiplier` and `_victory_extras()` |
 | **Strategy** | `BattleAI` (`RandomAI` / `SmartAI`) plugged into a `Battle` |
 | **State** | [BattleState](../src/model/battle.py#L41) enum; every screen's `mode` / `sub_state` |
+| **Command** | [LinkAction](../src/model/link_battle.py#L43): each player's choice is an object that can be sent over the network and resolved later |
+| **Proxy** | `GuestView` stands in for the real battle on the guest's computer, updated from the host's events |
 | **Observer-like event stream** | `Battle` returns `BattleEvent`s; `BattleScene` plays them back without knowing the rules |
 | **Composition** | `GameState` *has* a `Trainer`, `Pokedex`, `StoryFlags`, `BadgeCase`; `Trainer` *has* a `Party`, `Bag` and `PCBox`; `Party` *has* `Creature`s, which *have* `Move`s and a `StatusCondition` |
 
@@ -671,7 +680,7 @@ stateDiagram-v2
 
 ## 11. Testing
 
-`python3 -m unittest discover tests` runs 164 tests in about a second, with no window needed.
+`python3 -m unittest discover tests` runs 196 tests in about a second, with no window needed.
 
 | Test file | What it proves |
 |---|---|

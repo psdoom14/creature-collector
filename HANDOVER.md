@@ -2,7 +2,7 @@
 
 > Last updated: 2026-11-17, after Phase 7 of [docs/PLAN.md](docs/PLAN.md).
 > Repo: `github.com/psdoom14/creature-collector` (private). Stack: Python 3.11+ (developed on 3.14), Pygame 2.6, JSON data.
-> Tests: **176 passing** (`python3 -m unittest discover tests`, about 1 s, headless).
+> Tests: **196 passing** (`python3 -m unittest discover tests`, about 1 s, headless).
 
 ## 1. What this is
 

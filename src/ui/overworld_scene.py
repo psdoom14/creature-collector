@@ -81,8 +81,8 @@ class OverworldScene(Scene):
         self.water_timer = 0.0
         self.water_frame = 0
 
-        self.pause_menu = MenuBox(pygame.Rect(150, 8, 84, 88),
-                                  ["POKÉDEX", "PARTY", "BAG", "CARD", "SAVE", "EXIT"])
+        self.pause_menu = MenuBox(pygame.Rect(150, 8, 84, 102),
+                                  ["POKÉDEX", "PARTY", "BAG", "CARD", "LINK", "SAVE", "EXIT"])
         self.textbox = TextBox(pygame.Rect(4, 110, 232, 46))
         self.dialogue: List[str] = []
         self.starter_menu = MenuBox(pygame.Rect(180, 64, 56, 42), ["YES", "NO"])
@@ -215,17 +215,21 @@ class OverworldScene(Scene):
         if choice is None:
             return
         self.mode = "WALK"
-        if choice == 0:
+        option = self.pause_menu.options[choice]
+        if option == "POKÉDEX":
             self.engine.push_scene(PokedexScene(self.engine))
-        elif choice == 1:
+        elif option == "PARTY":
             self.engine.push_scene(PartyScene(self.engine))
-        elif choice == 2:
+        elif option == "BAG":
             self.engine.push_scene(BagScene(self.engine))
-        elif choice == 3:
+        elif option == "CARD":
             self.engine.push_scene(CardScene(self.engine))
-        elif choice == 4:
+        elif option == "LINK":
+            from src.ui.link_scene import LinkMenuScene  # imported here to avoid a cycle
+            self.engine.push_scene(LinkMenuScene(self.engine))
+        elif option == "SAVE":
             self.show_notification("Game saved!" if self.save_game() else "Save failed!")
-        # choice 5 (EXIT) just closes the menu
+        # EXIT just closes the menu
 
     # ------------------------------------------------------------------
     # Walking

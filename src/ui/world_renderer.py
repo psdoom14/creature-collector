@@ -282,6 +282,10 @@ class CharacterSprites:
     _cache: Dict[Tuple[str, str, int], pygame.Surface] = {}
 
     @classmethod
+    def clear_cache(cls) -> None:
+        cls._cache.clear()
+
+    @classmethod
     def get(cls, palette: str, facing: Direction, frame: int = 0) -> pygame.Surface:
         key = (palette, facing.key, frame % 3)
         if key not in cls._cache:

@@ -180,3 +180,10 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 **Demo helpers (2026-11-17).** 176 tests pass (+12 in `tests/test_debug.py`).
 - Route 1 now has all 25 species with equal weight (levels 3–6) so demos show variety. This replaces the balanced table; see HANDOVER section 4.
 - Debug menu: F1 or ` in the overworld (only while walking). Level up (+1/+5/+10, learning new moves), add any species at a chosen level, remove creatures (never the last), add/remove items (±1, +10, remove all), change money, heal the party; evolutions trigger on close. Model side: `src/model/debug_tools.py` and `Bag.remove()`, all going through the normal public methods.
+
+**Link battles over Wi-Fi (2026-11-17).** 196 tests pass (+20 in `tests/test_link_battle.py`, `tests/test_link_network.py`).
+- Model: `LinkBattle` (a `Battle` subclass) takes a `LinkAction` (move / switch / forfeit) from each player, resolves switches first, then moves by speed, then status damage; a fainted side picks its own replacement. Teams are rebuilt at level 50 by `build_link_team` on both computers, so they match exactly and nobody's save changes. No XP.
+- Network (`src/net/`, no pygame): `Connection` → `SocketConnection` (TCP, one JSON message per line, background reader thread) / `MemoryConnection` (tests); `LinkListener` / `LinkJoiner` connect without freezing the window; the protocol checks a fingerprint of the game data; creature ids travel as link ids ("A0", "B2") and the guest sees events flipped to its own side.
+- `HostSession` runs the battle and sends events; `GuestSession` sends choices and keeps a `GuestView` mirror. A test plays whole battles and checks both games end with identical HP for every creature; another runs a real TCP connection on localhost.
+- UI: pause menu → LINK (`LinkMenuScene`: host shows its address, join types it), `LinkBattleScene` reuses `BattleScene`. Disconnects end the battle with a message.
+- Test fix: `GameEngine` now clears image caches when created, and no test shuts pygame down for the rest of the run.

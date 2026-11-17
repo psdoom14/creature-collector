@@ -42,7 +42,8 @@ class TestBattleHUDAndComponents(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        pygame.quit()
+        # pygame stays running for the other test files in this process.
+        pass
 
     def test_bundled_fonts_exist_and_load(self):
         """Verify all three bundled TTF fonts exist in assets/fonts/ and load cleanly."""

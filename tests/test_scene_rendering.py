@@ -43,7 +43,7 @@ class TestSceneRendering(unittest.TestCase):
         from src.ui.world_renderer import CharacterSprites, TileArt
         SpriteRenderer.clear_cache()
         TileArt.clear_cache()
-        CharacterSprites._cache.clear()
+        CharacterSprites.clear_cache()
 
     def test_model_layer_has_zero_pygame_imports(self):
         """Assert zero pygame imports across all modules in src/model/."""

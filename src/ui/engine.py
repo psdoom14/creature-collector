@@ -30,6 +30,7 @@ class GameEngine:
         self.window_height = self.NATIVE_HEIGHT * self.SCALE
 
         self.window_surface = pygame.display.set_mode((self.window_width, self.window_height))
+        self._clear_image_caches()
         self.native_surface = pygame.Surface((self.NATIVE_WIDTH, self.NATIVE_HEIGHT))
 
         self.clock = pygame.time.Clock()
@@ -94,6 +95,16 @@ class GameEngine:
 
         self.game_state = GameState(trainer, pokedex, current_route="Fernvale Town")
         self.game_state.flags.set("has_starter")
+
+    @staticmethod
+    def _clear_image_caches() -> None:
+        """Cached sprites and tiles belong to the display they were made for; a new
+        engine (new display) starts with fresh caches."""
+        from src.ui.sprite_renderer import SpriteRenderer
+        from src.ui.world_renderer import CharacterSprites, TileArt
+        SpriteRenderer.clear_cache()
+        TileArt.clear_cache()
+        CharacterSprites.clear_cache()
 
     DEBUG_KEYS = (pygame.K_F1, pygame.K_BACKQUOTE)
 
