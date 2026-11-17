@@ -2,7 +2,7 @@
 import unittest
 from src.data_loader import DataLoader
 from src.model.trainer import Trainer, Party
-from src.model.battle import Battle, BattleState
+from src.model.battle import BattleState, WildBattle as Battle
 
 
 class TestBattle(unittest.TestCase):

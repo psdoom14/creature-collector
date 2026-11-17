@@ -191,6 +191,18 @@ class OverworldScene(Scene):
         self.notification_text: Optional[str] = None
         self.notification_timer: float = 0.0
 
+    # Tile just below the healing center, where the player wakes up after blacking out.
+    RESPAWN_TILE = (6, 1)
+
+    def respawn_after_blackout(self, money_lost: int) -> None:
+        """Called after a lost battle: the party is already healed by Trainer.black_out()."""
+        self.player_x, self.player_y = self.RESPAWN_TILE
+        self.start_tile_x = self.target_tile_x = self.player_x
+        self.start_tile_y = self.target_tile_y = self.player_y
+        self.is_moving = False
+        self.player_facing = "down"
+        self.show_notification(f"Blacked out! Lost ${money_lost}", 3.0)
+
     def show_notification(self, text: str, duration: float = 2.0) -> None:
         self.notification_text = text
         self.notification_timer = duration

@@ -7,7 +7,7 @@ import unittest
 
 from src.data_loader import DataLoader
 from src.model.bag import Bag
-from src.model.battle import Battle
+from src.model.battle import WildBattle as Battle
 from src.model.events import EventType
 from src.model.item import CatchBall, HealingItem, Item, ReviveItem, StatusCureItem
 from src.model.move import DamagingMove, Move, PhysicalMove, SpecialMove, StatusMove

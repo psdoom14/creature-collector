@@ -114,6 +114,11 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - New files: `src/model/events.py`, `status.py`, `move_effect.py`, `bag.py`; `tests/test_bug_regressions.py`, `tests/test_oop_pillars.py`.
 - API changes: type-based `Creature` subclasses removed; `Creature.evolve()` now changes the creature in place; `Trainer.inventory` → `Trainer.bag`; `Pokedex.get_completion()` needs the species total.
 
+**Phase 2 done (2026-11-17).** 70 tests pass (+12 in `tests/test_battle_flow.py`).
+- `Battle` is now abstract with `WildBattle` as the first subclass (hooks: `can_flee`, `can_catch`, `intro_message`, `_victory_message`); opponents pick moves through `BattleAI` → `RandomAI`.
+- Fixed: B4 (new `EvolutionScene`, cancellable with X), B5 (moves learned automatically, or a "forget which move?" menu), B7 (switch menu; forced after a faint, costs a turn otherwise), B9 (`Trainer.black_out()`: half money lost, party healed, respawn by the healing center), B11 (every creature has a `uid`; events and the UI use it), B14 in battle (bag menu scrolls).
+- Still open: B10 (load/title), B13 (text clipping), overworld BAG/EXIT — Phase 3.
+
 ### Demo world (original names to be decided)
 - **Town 1** — player's home, professor's lab, exit north.
 - **Route** — tall grass, a couple of trainers, signs.

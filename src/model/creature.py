@@ -5,6 +5,7 @@ code can read it through properties but can only change it through methods such
 as ``take_damage()``, ``heal()``, ``gain_xp()`` and ``learn_move()``, which
 enforce the rules (HP never below 0 or above max, at most 4 moves, ...).
 """
+import itertools
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from src.model.move import Move
@@ -24,6 +25,8 @@ def exp_for_level(level: int) -> int:
 class Creature:
     """A single creature: species data plus its own level, HP, moves and status."""
 
+    _uid_counter = itertools.count(1)
+
     def __init__(
         self,
         species_id: int,
@@ -42,6 +45,7 @@ class Creature:
         current_hp: Optional[int] = None,
         status_effect: Optional[Union[str, StatusCondition]] = None,
     ):
+        self._uid = next(Creature._uid_counter)
         self._set_species(species_id, name, types, base_stats, learnable_moves, evolution,
                           catch_rate, base_xp, sprite_front, sprite_back)
         self._level = max(1, min(MAX_LEVEL, level))
@@ -72,6 +76,11 @@ class Creature:
     # ------------------------------------------------------------------
     # Read-only species data
     # ------------------------------------------------------------------
+    @property
+    def uid(self) -> int:
+        """Unique id for this individual creature (two wild Rattata have different uids)."""
+        return self._uid
+
     @property
     def species_id(self) -> int:
         return self._species_id
@@ -305,6 +314,11 @@ class Creature:
             self._moves[slot] = new_move
             return True
         return False
+
+    @property
+    def evolves_into(self) -> Optional[int]:
+        """Species id this creature evolves into, or None."""
+        return self._evolution.get("into") if self._evolution else None
 
     def can_evolve(self) -> bool:
         if not self._evolution:

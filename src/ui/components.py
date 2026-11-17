@@ -675,12 +675,25 @@ class TextBox:
 class MenuBox:
     """Navigable menu box with GBA pointer arrow."""
 
-    def __init__(self, rect: pygame.Rect, options: List[str], columns: int = 1):
+    def __init__(self, rect: pygame.Rect, options: List[str], columns: int = 1,
+                 visible_rows: Optional[int] = None):
         self.rect = rect
         self.options = options
         self.columns = columns
         self.selected_index = 0
         self.font = get_font(8, "Silkscreen-Regular.ttf")
+        # When set, only this many rows are drawn and the list scrolls with the cursor.
+        self.visible_rows = visible_rows
+        self.scroll_row = 0
+
+    def _keep_selection_visible(self) -> None:
+        if not self.visible_rows:
+            return
+        row = self.selected_index // self.columns
+        if row < self.scroll_row:
+            self.scroll_row = row
+        elif row >= self.scroll_row + self.visible_rows:
+            self.scroll_row = row - self.visible_rows + 1
 
     def handle_input(self, key: int) -> Optional[int]:
         """Navigate menu. Returns selected index when Enter/Space/Z pressed."""
@@ -698,6 +711,7 @@ class MenuBox:
             self.selected_index = (self.selected_index + 1) % num
         elif key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
             return self.selected_index
+        self._keep_selection_visible()
         return None
 
     def draw(self, surface: pygame.Surface) -> None:
@@ -705,13 +719,18 @@ class MenuBox:
         if not self.options:
             return
 
-        rows = (len(self.options) + self.columns - 1) // self.columns
+        total_rows = (len(self.options) + self.columns - 1) // self.columns
+        rows = min(total_rows, self.visible_rows) if self.visible_rows else total_rows
+        first_row = self.scroll_row if self.visible_rows else 0
         col_w = (self.rect.width - 12) // self.columns
-        row_h = (self.rect.height - 10) // max(1, rows)
+        # With visible_rows the row height is fixed, so short lists don't spread out.
+        row_h = (self.rect.height - 10) // max(1, self.visible_rows or rows)
 
         for i, opt in enumerate(self.options):
-            r = i // self.columns
+            r = i // self.columns - first_row
             c = i % self.columns
+            if not 0 <= r < rows:
+                continue
             x = self.rect.x + 8 + (c * col_w)
             y = self.rect.y + 6 + (r * row_h)
 
@@ -734,3 +753,13 @@ class MenuBox:
                 color=COLOR_TEXT_DARK,
                 shadow_color=COLOR_TEXT_SHADOW,
             )
+
+        # Small scroll arrows when more rows are hidden above/below
+        if self.visible_rows and total_rows > rows:
+            cx = self.rect.right - 9
+            if first_row > 0:
+                pygame.draw.polygon(surface, (216, 48, 32),
+                                    [(cx - 3, self.rect.y + 8), (cx + 3, self.rect.y + 8), (cx, self.rect.y + 4)])
+            if first_row + rows < total_rows:
+                by = self.rect.bottom - 8
+                pygame.draw.polygon(surface, (216, 48, 32), [(cx - 3, by - 4), (cx + 3, by - 4), (cx, by)])

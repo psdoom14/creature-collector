@@ -7,7 +7,7 @@ import random
 import unittest
 
 from src.data_loader import DataLoader
-from src.model.battle import Battle, BattleState
+from src.model.battle import BattleState, WildBattle as Battle
 from src.model.trainer import Party, Trainer
 
 

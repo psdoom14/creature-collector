@@ -6,7 +6,7 @@ from typing import Optional
 from src.data_loader import DataLoader
 from src.model.trainer import Trainer, Party
 from src.model.pokedex import Pokedex
-from src.model.battle import Battle, BattleState
+from src.model.battle import Battle, BattleState, WildBattle
 from src.model.game_state import GameState
 from src.save_manager import SaveManager
 
@@ -70,7 +70,19 @@ def play_battle(battle: Battle, auto_input: Optional[list] = None) -> bool:
     print(f"\n⚡ Wild {w_creature.name} (Lv.{w_creature.level}) appeared! ⚡")
     print(f"Go! {p_lead.name}!")
 
-    while battle.is_active:
+    while battle.is_active or battle.pending_move:
+        if battle.pending_move:
+            learner, move = battle.pending_learner, battle.pending_move
+            print(f"\n{learner.name} wants to learn {move.name}. Forget which move?")
+            for i, m in enumerate(learner.moves):
+                print(f"  [{i+1}] {m.name}")
+            print("  [0] Don't learn it")
+            sel = get_choice("Forget: ")
+            slot = int(sel) - 1 if sel.isdigit() and 1 <= int(sel) <= len(learner.moves) else None
+            for e in battle.learn_pending_move(slot):
+                print(f"  > {e.message}")
+            continue
+
         print_status_box(w_creature, battle.player_creature)
 
         if battle.state == BattleState.SELECTING_SWITCH:
@@ -218,7 +230,7 @@ def main():
             wild = loader.get_creature(19, level=3)
 
         pokedex.register_seen(wild.species_id)
-        battle = Battle(trainer, wild, chart)
+        battle = WildBattle(trainer, wild, chart, move_source=loader.get_move)
 
         if auto:
             # Automated sequence: fight with move 1, or catch if low HP
@@ -228,10 +240,9 @@ def main():
             play_battle(battle)
 
         # After encounter options
-        if trainer.party.all_fainted():
-            print("\nAll your creatures have fainted! Hurrying to Pokémon Center...")
-            trainer.party.heal_all()
-            print("Party restored to full vitality!")
+        if battle.state is BattleState.LOST:
+            lost = trainer.black_out()
+            print(f"\nYou blacked out and dropped ${lost}! Your party was healed at the center.")
 
         print("\nOptions:")
         print("  [1] Continue Exploring")

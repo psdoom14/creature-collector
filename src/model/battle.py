@@ -1,5 +1,11 @@
 """Turn-based battle engine.
 
+    Battle (abstract)      all the turn rules
+    └── WildBattle         you may run and throw balls
+
+A later ``TrainerBattle`` / ``GymBattle`` only has to override the hooks
+(``can_flee``, ``can_catch``, ``intro_message``, ``_victory_message``).
+
 ``Battle`` never draws or prints anything. Each action returns a list of
 ``BattleEvent`` objects that the UI plays back. It relies on polymorphism
 instead of type checks:
@@ -8,57 +14,88 @@ instead of type checks:
 * ``move.effect.apply()``                           each MoveEffect subclass
 * ``status.before_move()`` / ``on_turn_end()``      each StatusCondition subclass
 * ``item.use_in_battle()``                          each Item subclass (CatchBall throws)
+* ``ai.choose_move()``                              each BattleAI subclass
 """
 import random
+from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import List, Optional
+from typing import Callable, List, Optional, Tuple
 
+from src.model.battle_ai import BattleAI, RandomAI
 from src.model.creature import Creature
 from src.model.events import BattleEvent, EventType
-from src.model.move import Move, MoveFactory
+from src.model.move import Move
 from src.model.trainer import Trainer
 from src.model.type_chart import TypeChart
 
-# Re-exported so existing ``from src.model.battle import BattleEvent`` keeps working.
-__all__ = ["Battle", "BattleState", "BattleEvent", "EventType"]
+__all__ = ["Battle", "WildBattle", "BattleState", "BattleEvent", "EventType"]
 
 CRIT_CHANCE = 0.0625
 CRIT_MULTIPLIER = 1.5
 STAB_MULTIPLIER = 1.5
 
+MoveSource = Callable[[str], Move]
+
 
 class BattleState(Enum):
     """Lifecycle states of a battle."""
     SELECTING_ACTION = auto()
-    SELECTING_MOVE = auto()
-    SELECTING_ITEM = auto()
-    SELECTING_SWITCH = auto()
-    EXECUTING_TURN = auto()
+    SELECTING_SWITCH = auto()   # the player's creature fainted and a replacement must be chosen
     WON = auto()
     LOST = auto()
     CAUGHT = auto()
     FLED = auto()
 
 
-_ACTIVE_STATES = frozenset({
-    BattleState.SELECTING_ACTION, BattleState.SELECTING_MOVE, BattleState.SELECTING_ITEM,
-    BattleState.SELECTING_SWITCH, BattleState.EXECUTING_TURN,
-})
+_ACTIVE_STATES = frozenset({BattleState.SELECTING_ACTION, BattleState.SELECTING_SWITCH})
 
 
-class Battle:
-    """A battle between the player's party and one wild creature."""
+class Battle(ABC):
+    """Abstract battle between the player's party and one opposing creature."""
 
-    def __init__(self, player: Trainer, wild_creature: Creature, type_chart: TypeChart):
+    def __init__(
+        self,
+        player: Trainer,
+        opponent: Creature,
+        type_chart: TypeChart,
+        ai: Optional[BattleAI] = None,
+        move_source: Optional[MoveSource] = None,
+    ):
         self._player = player
-        self._wild = wild_creature
+        self._opponent = opponent
         self._type_chart = type_chart
+        self._ai = ai or RandomAI()
+        self._move_source = move_source
         self._state = BattleState.SELECTING_ACTION
         self._turn_count = 0
+        self._active: Optional[Creature] = player.party.get_active()
+        self._pending_moves: List[Tuple[Creature, Move]] = []
 
-        if self.player_creature:
-            self.player_creature.reset_battle_stages()
-        self._wild.reset_battle_stages()
+        if self._active:
+            self._active.reset_battle_stages()
+        self._opponent.reset_battle_stages()
+
+    # ------------------------------------------------------------------
+    # Hooks for subclasses
+    # ------------------------------------------------------------------
+    @property
+    @abstractmethod
+    def can_flee(self) -> bool:
+        """Whether the player may run from this battle."""
+
+    @property
+    @abstractmethod
+    def can_catch(self) -> bool:
+        """Whether balls can be thrown at the opponent."""
+
+    @property
+    @abstractmethod
+    def intro_message(self) -> str:
+        """Text shown when the battle starts."""
+
+    @abstractmethod
+    def _victory_message(self) -> str:
+        """Text shown when the opponent is defeated."""
 
     # ------------------------------------------------------------------
     # Read-only state
@@ -68,8 +105,8 @@ class Battle:
         return self._player
 
     @property
-    def wild_creature(self) -> Creature:
-        return self._wild
+    def opponent(self) -> Creature:
+        return self._opponent
 
     @property
     def state(self) -> BattleState:
@@ -81,21 +118,31 @@ class Battle:
 
     @property
     def player_creature(self) -> Optional[Creature]:
-        return self._player.party.get_active()
+        """The player's creature currently out (may be fainted while a switch is pending)."""
+        return self._active
 
     @property
     def is_active(self) -> bool:
         return self._state in _ACTIVE_STATES
 
+    @property
+    def pending_move(self) -> Optional[Move]:
+        """A move waiting for the player to decide which old move to forget."""
+        return self._pending_moves[0][1] if self._pending_moves else None
+
+    @property
+    def pending_learner(self) -> Optional[Creature]:
+        return self._pending_moves[0][0] if self._pending_moves else None
+
     # ------------------------------------------------------------------
-    # Player actions (public API)
+    # Player actions
     # ------------------------------------------------------------------
     def execute_move(self, player_move_index: int) -> List[BattleEvent]:
         """Play a full turn where the player uses the move in ``player_move_index``."""
-        mine = self.player_creature
-        if mine is None:
-            self._state = BattleState.LOST
-            return [BattleEvent(EventType.BATTLE_LOST, "You have no creatures that can fight!")]
+        blocked = self._check_can_act()
+        if blocked:
+            return blocked
+        mine = self._active
         if not 0 <= player_move_index < len(mine.moves):
             return [self._invalid("Invalid move selection!")]
         my_move = mine.moves[player_move_index]
@@ -103,9 +150,9 @@ class Battle:
             return [self._invalid("No PP left for this move!")]
 
         self._turn_count += 1
-        wild_move = self._choose_wild_move()
-        order = [(mine, self._wild, my_move), (self._wild, mine, wild_move)]
-        if self._wild_moves_first(mine):
+        their_move = self._ai.choose_move(self._opponent, mine)
+        order = [(mine, self._opponent, my_move), (self._opponent, mine, their_move)]
+        if self._opponent_moves_first(mine):
             order.reverse()
 
         events: List[BattleEvent] = []
@@ -113,15 +160,16 @@ class Battle:
             if attacker.is_fainted:
                 continue
             events += self._execute_move_step(attacker, defender, move)
-            events += self._resolve_faints(mine)
-            if not self.is_active or self._state is BattleState.SELECTING_SWITCH:
+            events += self._resolve_faints()
+            if self._turn_over():
                 return events
-
-        events += self._end_of_turn(mine)
-        return events
+        return events + self._end_of_turn()
 
     def use_item(self, item_id: str) -> List[BattleEvent]:
         """Use an item from the bag. Each Item subclass decides what that means."""
+        blocked = self._check_can_act()
+        if blocked:
+            return blocked
         item = self._player.bag.get(item_id)
         if item is None or not item.has_stock():
             return [self._invalid(f"You don't have any {item_id}!")]
@@ -131,61 +179,94 @@ class Battle:
         took_turn = not any(e.event_type is EventType.INVALID_ACTION for e in events)
         if took_turn and self.is_active:
             self._turn_count += 1
-            events += self._wild_free_attack()
+            events += self._opponent_free_attack()
         return events
 
     def attempt_catch(self, ball_id: str) -> List[BattleEvent]:
-        """Throw the ball with id ``ball_id`` (kept for older callers; same as ``use_item``)."""
+        """Throw the ball with id ``ball_id`` (same as ``use_item``)."""
         return self.use_item(ball_id)
 
     def throw_ball(self, ball) -> List[BattleEvent]:
-        """Called by ``CatchBall.use_in_battle``: throw ``ball`` at the wild creature."""
+        """Called by ``CatchBall.use_in_battle``: throw ``ball`` at the opponent."""
+        if not self.can_catch:
+            return [self._invalid("You can't catch another trainer's creature!")]
         if not ball.consume():
             return [self._invalid(f"No {ball.name} left!")]
 
+        foe = self._opponent
         events = [BattleEvent(EventType.BALL_THROWN, f"{self._player.name} threw a {ball.name}!",
                               {"ball": ball.name})]
-        if random.random() <= ball.calc_catch_chance(self._wild):
+        if random.random() <= ball.calc_catch_chance(foe):
             self._state = BattleState.CAUGHT
-            destination = self._player.receive_creature(self._wild)
+            destination = self._player.receive_creature(foe)
             where = "" if destination == "party" else " It was sent to the PC."
             events.append(BattleEvent(
-                EventType.CAUGHT, f"Gotcha! {self._wild.name} was caught!{where}",
-                {"creature": self._wild.to_dict(), "destination": destination},
+                EventType.CAUGHT, f"Gotcha! {foe.name} was caught!{where}",
+                {"creature": foe.to_dict(), "destination": destination, "uid": foe.uid},
             ))
         else:
             events.append(BattleEvent(EventType.CATCH_FAILED, "Oh no! It broke free!",
-                                      {"creature": self._wild.name}))
+                                      {"creature": foe.name}))
         return events
 
     def attempt_run(self) -> List[BattleEvent]:
         """Try to flee. Faster creatures escape more easily."""
-        mine = self.player_creature
-        if mine is None:
-            self._state = BattleState.FLED
-            return [BattleEvent(EventType.FLED, "Got away safely!")]
+        blocked = self._check_can_act()
+        if blocked:
+            return blocked
+        if not self.can_flee:
+            return [self._invalid("No! There's no running from this battle!")]
 
-        chance = 0.50 + (mine.speed / max(1, self._wild.speed)) * 0.25
+        mine = self._active
+        chance = 0.50 + (mine.speed / max(1, self._opponent.speed)) * 0.25
         if random.random() <= max(0.10, min(0.95, chance)):
             self._state = BattleState.FLED
             return [BattleEvent(EventType.FLED, "Got away safely!")]
 
         self._turn_count += 1
-        return [BattleEvent(EventType.FLEE_FAILED, "Can't escape!")] + self._wild_free_attack()
+        return [BattleEvent(EventType.FLEE_FAILED, "Can't escape!")] + self._opponent_free_attack()
 
     def switch_creature(self, party_index: int) -> List[BattleEvent]:
-        """Send out the creature at ``party_index``."""
+        """Send out the party creature at ``party_index``.
+
+        After a faint this is free; otherwise it uses the player's turn.
+        """
+        if not self.is_active:
+            return [self._invalid("The battle is over!")]
         party = self._player.party
         if not 0 <= party_index < party.size:
             return [self._invalid("Invalid party slot!")]
         chosen = party.creatures[party_index]
+        if chosen is self._active:
+            return [self._invalid(f"{chosen.name} is already in battle!")]
         if chosen.is_fainted:
             return [self._invalid(f"{chosen.name} has no energy left to battle!")]
 
+        forced = self._state is BattleState.SELECTING_SWITCH
         party.swap(0, party_index)
+        self._active = chosen
         chosen.reset_battle_stages()
         self._state = BattleState.SELECTING_ACTION
-        return [BattleEvent(EventType.CREATURE_SENT, f"Go! {chosen.name}!", {"creature": chosen.name})]
+        events = [BattleEvent(EventType.CREATURE_SENT, f"Go! {chosen.name}!",
+                              {"creature": chosen.name, "uid": chosen.uid})]
+        if not forced:
+            self._turn_count += 1
+            events += self._opponent_free_attack()
+        return events
+
+    def learn_pending_move(self, forget_slot: Optional[int]) -> List[BattleEvent]:
+        """Answer the "forget a move?" question. ``None`` means don't learn the new move."""
+        if not self._pending_moves:
+            return []
+        learner, move = self._pending_moves.pop(0)
+        if forget_slot is not None and 0 <= forget_slot < len(learner.moves):
+            forgotten = learner.moves[forget_slot].name
+            learner.learn_move(move, slot=forget_slot)
+            return [BattleEvent(EventType.MOVE_LEARNED,
+                                f"{learner.name} forgot {forgotten} and learned {move.name}!",
+                                {"uid": learner.uid, "move": move.name})]
+        return [BattleEvent(EventType.MOVE_NOT_LEARNED, f"{learner.name} did not learn {move.name}.",
+                            {"uid": learner.uid, "move": move.name})]
 
     # ------------------------------------------------------------------
     # Damage
@@ -215,25 +296,46 @@ class Battle:
     def _invalid(message: str) -> BattleEvent:
         return BattleEvent(EventType.INVALID_ACTION, message)
 
-    def _wild_moves_first(self, mine: Creature) -> bool:
-        if mine.speed != self._wild.speed:
-            return self._wild.speed > mine.speed
+    def _check_can_act(self) -> List[BattleEvent]:
+        """Events explaining why the player can't act right now (empty if they can)."""
+        if not self.is_active:
+            return [self._invalid("The battle is over!")]
+        if self._active is None:
+            self._state = BattleState.LOST
+            return [BattleEvent(EventType.BATTLE_LOST, "You have no creatures that can fight!")]
+        if self._state is BattleState.SELECTING_SWITCH:
+            return [self._invalid("Choose a creature to send out!")]
+        return []
+
+    def _turn_over(self) -> bool:
+        return not self.is_active or self._state is BattleState.SELECTING_SWITCH
+
+    def _opponent_moves_first(self, mine: Creature) -> bool:
+        if mine.speed != self._opponent.speed:
+            return self._opponent.speed > mine.speed
         return random.random() < 0.5
 
-    def _choose_wild_move(self) -> Move:
-        usable = [m for m in self._wild.moves if m.can_use()]
-        return random.choice(usable) if usable else MoveFactory.struggle()
-
-    def _wild_free_attack(self) -> List[BattleEvent]:
-        """The wild creature attacks after the player spends a turn on something else."""
-        mine = self.player_creature
-        if mine is None or self._wild.is_fainted:
+    def _opponent_free_attack(self) -> List[BattleEvent]:
+        """The opponent attacks after the player spends a turn on something else."""
+        mine = self._active
+        if mine is None or mine.is_fainted or self._opponent.is_fainted:
             return []
-        events = self._execute_move_step(self._wild, mine, self._choose_wild_move())
-        events += self._resolve_faints(mine)
-        if self.is_active and self._state is not BattleState.SELECTING_SWITCH:
-            events += self._end_of_turn(mine)
+        move = self._ai.choose_move(self._opponent, mine)
+        events = self._execute_move_step(self._opponent, mine, move)
+        events += self._resolve_faints()
+        if not self._turn_over():
+            events += self._end_of_turn()
         return events
+
+    @staticmethod
+    def _hp_data(creature: Creature) -> dict:
+        return {"target": creature.name, "target_uid": creature.uid,
+                "target_current_hp": creature.current_hp, "target_max_hp": creature.max_hp}
+
+    @staticmethod
+    def _fainted_event(creature: Creature) -> BattleEvent:
+        return BattleEvent(EventType.FAINTED, f"{creature.name} fainted!",
+                           {"fainted": creature.name, "uid": creature.uid})
 
     def _execute_move_step(self, user: Creature, target: Creature, move: Move) -> List[BattleEvent]:
         """One creature uses one move."""
@@ -243,13 +345,14 @@ class Battle:
             can_act, message = user.status.before_move(user)
             if message:
                 kind = EventType.STATUS_HINDRANCE if not can_act else EventType.STATUS_CURED
-                events.append(BattleEvent(kind, message, {"creature": user.name}))
+                events.append(BattleEvent(kind, message, {"creature": user.name, "uid": user.uid}))
             if not can_act:
                 return events
 
         move.use()
         events.append(BattleEvent(EventType.MOVE_USED, f"{user.name} used {move.name}!",
-                                  {"user": user.name, "move": move.name, "type": move.type}))
+                                  {"user": user.name, "user_uid": user.uid,
+                                   "move": move.name, "type": move.type}))
 
         calc = self.calculate_damage(user, target, move)
         if not calc["hit"]:
@@ -263,11 +366,8 @@ class Battle:
 
         if calc["damage"] > 0:
             lost = target.take_damage(calc["damage"])
-            events.append(BattleEvent(
-                EventType.DAMAGE_DEALT, f"{target.name} took {lost} damage!",
-                {"target": target.name, "damage": lost,
-                 "target_current_hp": target.current_hp, "target_max_hp": target.max_hp},
-            ))
+            events.append(BattleEvent(EventType.DAMAGE_DEALT, f"{target.name} took {lost} damage!",
+                                      {**self._hp_data(target), "damage": lost}))
             if calc["is_crit"]:
                 events.append(BattleEvent(EventType.CRITICAL, "A critical hit!"))
             eff_msg = self._type_chart.get_effectiveness_message(calc["multiplier"])
@@ -280,61 +380,100 @@ class Battle:
             if not effect_events and not move.is_damaging():
                 effect_events = [BattleEvent(EventType.FAILED, "But it failed!")]
             events += effect_events
+            # Effects like Recover change HP: tell the UI the new values.
+            if any(e.event_type is EventType.HEAL for e in effect_events):
+                events.append(BattleEvent(EventType.HEAL, "", self._hp_data(user)))
 
         if target.is_fainted:
-            events.append(BattleEvent(EventType.FAINTED, f"{target.name} fainted!",
-                                      {"fainted": target.name}))
+            events.append(self._fainted_event(target))
         return events
 
-    def _end_of_turn(self, mine: Creature) -> List[BattleEvent]:
+    def _end_of_turn(self) -> List[BattleEvent]:
         """Status damage for both sides, then check for faints."""
         events: List[BattleEvent] = []
-        for creature in (mine, self._wild):
-            if creature.is_fainted or not creature.status:
+        for creature in (self._active, self._opponent):
+            if creature is None or creature.is_fainted or not creature.status:
                 continue
             status_key = creature.status.key
             damage, message = creature.status.on_turn_end(creature)
             if damage <= 0:
                 continue
             creature.take_damage(damage)
-            events.append(BattleEvent(
-                EventType.STATUS_DAMAGE, message,
-                {"target": creature.name, "creature": creature.name, "damage": damage,
-                 "status": status_key, "target_current_hp": creature.current_hp,
-                 "target_max_hp": creature.max_hp},
-            ))
+            events.append(BattleEvent(EventType.STATUS_DAMAGE, message,
+                                      {**self._hp_data(creature), "creature": creature.name,
+                                       "damage": damage, "status": status_key}))
             if creature.is_fainted:
-                events.append(BattleEvent(EventType.FAINTED, f"{creature.name} fainted!",
-                                          {"fainted": creature.name}))
-        return events + self._resolve_faints(mine)
+                events.append(self._fainted_event(creature))
+        return events + self._resolve_faints()
 
-    def _resolve_faints(self, mine: Creature) -> List[BattleEvent]:
+    def _resolve_faints(self) -> List[BattleEvent]:
         """After damage: decide whether the battle is won, lost, or needs a switch."""
-        if self._wild.is_fainted:
+        mine = self._active
+        if self._opponent.is_fainted:
             self._state = BattleState.WON
             return self._award_victory_xp(mine) + [
-                BattleEvent(EventType.BATTLE_WON, f"Defeated wild {self._wild.name}!")]
-        if mine.is_fainted:
+                BattleEvent(EventType.BATTLE_WON, self._victory_message())]
+        if mine is not None and mine.is_fainted:
             if self._player.party.all_fainted():
                 self._state = BattleState.LOST
                 return [BattleEvent(EventType.BATTLE_LOST,
                                     f"{self._player.name} is out of usable creatures! You blacked out!")]
             self._state = BattleState.SELECTING_SWITCH
-            return [BattleEvent(EventType.CHOOSE_NEXT, "Send out another creature?")]
+            return [BattleEvent(EventType.CHOOSE_NEXT, "Choose the next creature!")]
         return []
 
-    def _award_victory_xp(self, winner: Creature) -> List[BattleEvent]:
-        if winner.is_fainted:
+    def _award_victory_xp(self, winner: Optional[Creature]) -> List[BattleEvent]:
+        if winner is None or winner.is_fainted:
             return []
-        xp = max(1, int(self._wild.base_xp * self._wild.level / 7))
+        foe = self._opponent
+        xp = max(1, int(foe.base_xp * foe.level / 7))
         events = [BattleEvent(EventType.XP_GAINED, f"{winner.name} gained {xp} EXP. Points!",
-                              {"creature": winner.name, "xp": xp})]
+                              {"creature": winner.name, "uid": winner.uid, "xp": xp})]
         result = winner.gain_xp(xp)
         if result["leveled_up"]:
             events.append(BattleEvent(EventType.LEVEL_UP,
-                                      f"{winner.name} grew to level {result['new_level']}!", result))
+                                      f"{winner.name} grew to level {result['new_level']}!",
+                                      {**result, "uid": winner.uid}))
             for move_id in result["unlocked_moves"]:
-                events.append(BattleEvent(EventType.UNLOCKED_MOVE,
-                                          f"{winner.name} can learn a new move ({move_id})!",
-                                          {"move_id": move_id}))
+                events += self._offer_move(winner, move_id)
         return events
+
+    def _offer_move(self, learner: Creature, move_id: str) -> List[BattleEvent]:
+        """Teach a newly unlocked move, or queue a "forget which move?" question."""
+        if self._move_source is None:
+            return [BattleEvent(EventType.UNLOCKED_MOVE,
+                                f"{learner.name} can learn a new move ({move_id})!",
+                                {"move_id": move_id})]
+        if learner.knows_move(move_id):
+            return []
+        move = self._move_source(move_id)
+        if learner.learn_move(move):
+            return [BattleEvent(EventType.MOVE_LEARNED, f"{learner.name} learned {move.name}!",
+                                {"uid": learner.uid, "move": move.name})]
+        self._pending_moves.append((learner, move))
+        return [BattleEvent(EventType.LEARN_MOVE_PROMPT,
+                            f"{learner.name} wants to learn {move.name}, but already knows 4 moves.",
+                            {"uid": learner.uid, "move": move.name})]
+
+
+class WildBattle(Battle):
+    """A battle against a wild creature: you can run away or try to catch it."""
+
+    @property
+    def wild_creature(self) -> Creature:
+        return self._opponent
+
+    @property
+    def can_flee(self) -> bool:
+        return True
+
+    @property
+    def can_catch(self) -> bool:
+        return True
+
+    @property
+    def intro_message(self) -> str:
+        return f"Wild {self._opponent.name} appeared!"
+
+    def _victory_message(self) -> str:
+        return f"Defeated wild {self._opponent.name}!"

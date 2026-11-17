@@ -79,6 +79,10 @@ class Party(_CreatureCollection):
     def all_fainted(self) -> bool:
         return all(c.is_fainted for c in self._creatures)
 
+    def ready_to_evolve(self) -> Tuple[Creature, ...]:
+        """Creatures that have reached their evolution level."""
+        return tuple(c for c in self._creatures if c.can_evolve())
+
     def heal_all(self) -> None:
         """Healing-center treatment for the whole party, including fainted creatures."""
         for c in self._creatures:
@@ -143,6 +147,13 @@ class Trainer:
             return False
         self._money -= amount
         return True
+
+    def black_out(self) -> int:
+        """All creatures fainted: lose half the money and get healed. Returns money lost."""
+        lost = self._money // 2
+        self._money -= lost
+        self._party.heal_all()
+        return lost
 
     def receive_creature(self, creature: Creature) -> str:
         """Put a new creature in the party, or the PC box if the party is full.
