@@ -9,6 +9,9 @@ from src.data_loader import DataLoader
 from src.model.game_state import GameState
 from src.model.trainer import Trainer, Party
 from src.model.pokedex import Pokedex
+from src.save_manager import SaveManager
+
+DEFAULT_SAVE_PATH = Path(__file__).resolve().parent.parent.parent / "savegame.json"
 
 
 class GameEngine:
@@ -18,7 +21,7 @@ class GameEngine:
     NATIVE_HEIGHT = 160
     SCALE = 3
 
-    def __init__(self, title: str = "Pokémon - Creature Collector"):
+    def __init__(self, title: str = "Pokémon - Creature Collector", save_path: Optional[Path] = None):
         pygame.init()
         pygame.display.set_caption(title)
 
@@ -34,14 +37,39 @@ class GameEngine:
         self.scene_stack: List[Scene] = []
         self.data_loader = DataLoader()
         self.game_state: Optional[GameState] = None
+        self.save_path = Path(save_path) if save_path else DEFAULT_SAVE_PATH
 
         self._init_default_game_state()
+
+    # --- game state lifecycle --------------------------------------------
+    def has_save(self) -> bool:
+        return SaveManager.has_save(self.save_path)
+
+    def peek_save(self) -> Optional[GameState]:
+        """Load the save file without making it current (for the title screen summary)."""
+        if not self.has_save():
+            return None
+        try:
+            return SaveManager.load_game(self.save_path, self.data_loader)
+        except (OSError, ValueError, KeyError):
+            return None
+
+    def new_game(self) -> None:
+        self._init_default_game_state()
+
+    def continue_game(self) -> bool:
+        """Make the saved game current. Returns False if there is no usable save."""
+        loaded = self.peek_save()
+        if loaded is None:
+            return False
+        self.game_state = loaded
+        return True
 
     def _init_default_game_state(self) -> None:
         """Create initial player and inventory state."""
         starter = self.data_loader.get_creature(4, level=5)  # Charmander
         party = Party([starter])
-        trainer = Trainer("Red", party, money=1200)
+        trainer = Trainer("PLAYER", party, money=1200)
 
         # Starter kit
         trainer.add_item(self.data_loader.get_item("poke_ball", 10), 10)
@@ -84,6 +112,8 @@ class GameEngine:
         self.is_running = True
         while self.is_running:
             dt = self.clock.tick(60) / 1000.0
+            if self.game_state:
+                self.game_state.add_play_time(dt)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

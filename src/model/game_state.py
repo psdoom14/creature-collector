@@ -1,5 +1,5 @@
 """GameState: everything that goes into a save file."""
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from src.model.bag import Bag
 from src.model.creature import CreatureFactory
@@ -19,20 +19,38 @@ class GameState:
         current_route: str = "Route 1",
         play_time: float = 0.0,
         badges: int = 0,
+        player_position: Optional[Tuple[int, int]] = None,
     ):
         self.trainer = trainer
         self.pokedex = pokedex or Pokedex()
         self.current_route = current_route
-        self.play_time = play_time
+        self._play_time = max(0.0, play_time)
         self.badges = badges
+        #: Tile the player stood on when saving (replaced by a full map location in Phase 4).
+        self.player_position: Optional[Tuple[int, int]] = player_position
+
+    @property
+    def play_time(self) -> float:
+        """Seconds played."""
+        return self._play_time
+
+    def add_play_time(self, seconds: float) -> None:
+        self._play_time += max(0.0, seconds)
+
+    @property
+    def play_time_text(self) -> str:
+        """Play time as H:MM."""
+        minutes = int(self._play_time // 60)
+        return f"{minutes // 60}:{minutes % 60:02d}"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "trainer": self.trainer.to_dict(),
             "pokedex": self.pokedex.to_dict(),
             "current_route": self.current_route,
-            "play_time": self.play_time,
+            "play_time": self._play_time,
             "badges": self.badges,
+            "player_position": list(self.player_position) if self.player_position else None,
         }
 
     @staticmethod
@@ -72,4 +90,5 @@ class GameState:
             current_route=data.get("current_route", "Route 1"),
             play_time=data.get("play_time", 0.0),
             badges=data.get("badges", 0),
+            player_position=tuple(data["player_position"]) if data.get("player_position") else None,
         )

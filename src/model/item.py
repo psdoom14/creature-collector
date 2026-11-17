@@ -81,6 +81,11 @@ class Item(ABC):
         return False
 
     # --- polymorphic behaviour ----------------------------------------
+    @property
+    def usable_in_field(self) -> bool:
+        """Whether this item can be used from the bag outside battle."""
+        return True
+
     @abstractmethod
     def can_use(self, target: Creature) -> bool:
         """Whether using this item on ``target`` would do anything."""
@@ -161,6 +166,10 @@ class ReviveItem(Item):
 class CatchBall(Item):
     """Thrown at a wild creature to try to catch it."""
     KIND = "catch"
+
+    @property
+    def usable_in_field(self) -> bool:
+        return False  # balls are only thrown in battle
 
     @property
     def ball_multiplier(self) -> float:

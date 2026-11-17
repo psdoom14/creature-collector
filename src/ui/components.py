@@ -193,6 +193,84 @@ def draw_crisp_text(
         return draw_bitmap_text(surface, text, x, y, color=color, shadow_color=shadow_color)
 
 
+# ----------------------------------------------------------------------
+# Text that must fit a box
+# ----------------------------------------------------------------------
+_OVERFLOW_LOG: List[Tuple[str, int, int]] = []
+
+
+def reset_overflow_log() -> None:
+    """Forget recorded overflows (tests call this before drawing a screen)."""
+    _OVERFLOW_LOG.clear()
+
+
+def overflow_log() -> List[Tuple[str, int, int]]:
+    """(text, needed width, allowed width) for every string that didn't fit its box."""
+    return list(_OVERFLOW_LOG)
+
+
+def small_font() -> pygame.font.Font:
+    """The compact pixel font used wherever space is tight."""
+    return get_font(8, "Silkscreen-Regular.ttf")
+
+
+def fit_font(text: str, max_width: int, font: pygame.font.Font) -> pygame.font.Font:
+    """``font`` if ``text`` fits in ``max_width``, else the compact font."""
+    if font.size(text)[0] <= max_width:
+        return font
+    return small_font()
+
+
+def draw_fitted_text(
+    surface: pygame.Surface,
+    text: str,
+    x: int,
+    y: int,
+    max_width: int,
+    font: Optional[pygame.font.Font] = None,
+    color: Tuple[int, int, int] = COLOR_TEXT_DARK,
+    shadow_color: Optional[Tuple[int, int, int]] = COLOR_TEXT_SHADOW,
+    align: str = "left",
+) -> pygame.Rect:
+    """Draw ``text`` inside ``max_width`` pixels.
+
+    Uses ``font`` if it fits, otherwise the compact font. If even that is too
+    wide the text is cut with ".." and the overflow is logged for the tests.
+    """
+    chosen = fit_font(text, max_width, font or get_font(10))
+    shown = text
+    if chosen.size(shown)[0] > max_width:
+        _OVERFLOW_LOG.append((text, chosen.size(text)[0], max_width))
+        while shown and chosen.size(shown + "..")[0] > max_width:
+            shown = shown[:-1]
+        shown += ".."
+    width = chosen.size(shown)[0]
+    if align == "right":
+        x = x + max_width - width
+    elif align == "center":
+        x = x + (max_width - width) // 2
+    return draw_crisp_text(surface, shown, x, y, chosen, color, shadow_color)
+
+
+def wrap_text(text: str, max_width: int, font: pygame.font.Font) -> List[str]:
+    """Split ``text`` into lines no wider than ``max_width`` (single long words are logged)."""
+    lines: List[str] = []
+    current = ""
+    for word in text.split():
+        candidate = f"{current} {word}".strip()
+        if font.size(candidate)[0] <= max_width or not current:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    for line in lines:
+        if font.size(line)[0] > max_width:
+            _OVERFLOW_LOG.append((line, font.size(line)[0], max_width))
+    return lines
+
+
 def draw_gba_panel(
     surface: pygame.Surface,
     rect: pygame.Rect,

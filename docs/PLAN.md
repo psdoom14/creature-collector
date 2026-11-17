@@ -119,6 +119,12 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - Fixed: B4 (new `EvolutionScene`, cancellable with X), B5 (moves learned automatically, or a "forget which move?" menu), B7 (switch menu; forced after a faint, costs a turn otherwise), B9 (`Trainer.black_out()`: half money lost, party healed, respawn by the healing center), B11 (every creature has a `uid`; events and the UI use it), B14 in battle (bag menu scrolls).
 - Still open: B10 (load/title), B13 (text clipping), overworld BAG/EXIT — Phase 3.
 
+**Phase 3 done (2026-11-17).** 82 tests pass (+12 in `tests/test_ui_screens.py`).
+- Fixed B13: new `draw_fitted_text()` / `wrap_text()` helpers in `components.py` fit text to its box (falling back to the compact font) and log anything that still overflows; tests render the Party, Pokédex, Bag, Title and overworld screens and require an empty log. Party uses fixed columns; Pokédex uses the compact font; the location banner shows for 2.5 s on entering an area and slides away; notifications wrap to two lines.
+- Fixed B10: `TitleScene` (PRESS ENTER → CONTINUE / NEW GAME / QUIT, with a save summary). Saves include the player's tile and play time; the save file lives at the project root regardless of the working directory.
+- Fixed B14 (overworld): `BagScene` lets you use items on a chosen creature; `Item.usable_in_field` is overridden by `CatchBall` so balls say they're battle-only. EXIT just closes the menu, as in the classic games.
+- Default trainer name is now "PLAYER" (name entry comes with the Phase 5 intro).
+
 ### Demo world (original names to be decided)
 - **Town 1** — player's home, professor's lab, exit north.
 - **Route** — tall grass, a couple of trainers, signs.

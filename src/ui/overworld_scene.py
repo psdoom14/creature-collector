@@ -8,7 +8,10 @@ from src.ui.scene import Scene
 from src.ui.battle_scene import BattleScene
 from src.ui.party_scene import PartyScene
 from src.ui.pokedex_scene import PokedexScene
-from src.ui.components import draw_gba_panel, MenuBox, TextBox, get_font, COLOR_TEXT_DARK
+from src.ui.bag_scene import BagScene
+from src.ui.components import (
+    MenuBox, draw_fitted_text, draw_gba_panel, get_font, small_font, wrap_text,
+)
 from src.save_manager import SaveManager
 
 
@@ -158,8 +161,8 @@ class OverworldScene(Scene):
 
     def __init__(self, engine):
         super().__init__(engine)
-        self.player_x = 7
-        self.player_y = 4
+        saved = engine.game_state.player_position
+        self.player_x, self.player_y = saved if saved else self.START_TILE
         self.player_facing = "down"  # up, down, left, right
 
         # Smooth grid walking state
@@ -178,7 +181,7 @@ class OverworldScene(Scene):
         self.water_frame_duration: float = 0.25  # 4 FPS (250ms per frame)
 
         self.font = get_font(10)
-        self.font_sm = get_font(9)
+        self.font_sm = small_font()
 
         # In-game pause menu
         self.is_menu_open = False
@@ -190,6 +193,26 @@ class OverworldScene(Scene):
 
         self.notification_text: Optional[str] = None
         self.notification_timer: float = 0.0
+
+        # Location name shown briefly when entering an area (slides up after a few seconds)
+        self.location_timer: float = 0.0
+        self.show_location_banner()
+
+    START_TILE = (7, 4)
+    LOCATION_BANNER_SECONDS = 2.5
+
+    @property
+    def location_banner_visible(self) -> bool:
+        return self.location_timer > 0
+
+    def show_location_banner(self) -> None:
+        self.location_timer = self.LOCATION_BANNER_SECONDS
+
+    def save_game(self) -> bool:
+        """Store the player's position and write the save file."""
+        state = self.engine.game_state
+        state.player_position = (self.player_x, self.player_y)
+        return SaveManager.save_game(state, self.engine.save_path)
 
     # Tile just below the healing center, where the player wakes up after blacking out.
     RESPAWN_TILE = (6, 1)
@@ -275,12 +298,11 @@ class OverworldScene(Scene):
                         self.engine.push_scene(PartyScene(self.engine))
                     elif choice == 2:  # BAG
                         self.is_menu_open = False
-                        bag_items = [f"{it.name} x{it.quantity}" for it in self.engine.game_state.trainer.bag]
-                        self.show_notification(", ".join(bag_items) or "Bag empty", 3.0)
+                        self.engine.push_scene(BagScene(self.engine))
                     elif choice == 3:  # SAVE
-                        SaveManager.save_game(self.engine.game_state, "savegame.json")
                         self.is_menu_open = False
-                        self.show_notification("Game saved to savegame.json!")
+                        ok = self.save_game()
+                        self.show_notification("Game saved!" if ok else "Save failed!")
                     elif choice == 4:  # EXIT
                         self.is_menu_open = False
             return
@@ -301,6 +323,7 @@ class OverworldScene(Scene):
             self.is_menu_open = True
 
     def update(self, dt: float) -> None:
+        self.location_timer = max(0.0, self.location_timer - dt)
         if self.notification_timer > 0:
             self.notification_timer = max(0.0, self.notification_timer - dt)
             if self.notification_timer == 0.0:
@@ -387,16 +410,23 @@ class OverworldScene(Scene):
         if is_in_tall_grass:
             surface.blit(TileManager.get_tile("tall_grass_overlay"), (round(px), round(py)))
 
-        # 4. Route HUD header
-        draw_gba_panel(surface, pygame.Rect(4, 4, 80, 16))
-        route_lbl = self.font_sm.render(self.engine.game_state.current_route, True, COLOR_TEXT_DARK)
-        surface.blit(route_lbl, (8, 6))
+        # 4. Location banner: sized to the name, slides up and away after a few seconds
+        if self.location_banner_visible:
+            name = self.engine.game_state.current_route
+            width = min(160, self.font.size(name)[0] + 16)
+            slide = min(1.0, self.location_timer / 0.3)  # last 0.3s slides out
+            y = int(4 - (1.0 - slide) * 24)
+            draw_gba_panel(surface, pygame.Rect(4, y, width, 18))
+            draw_fitted_text(surface, name, 12, y + 1, width - 16, self.font)
 
-        # 5. Notification Banner
+        # 5. Notification box (bottom, wraps to two lines)
         if self.notification_text:
-            draw_gba_panel(surface, pygame.Rect(10, 136, 220, 20))
-            notif = self.font_sm.render(self.notification_text, True, (180, 40, 30))
-            surface.blit(notif, (16, 140))
+            lines = wrap_text(self.notification_text, 216, self.font_sm)[:2]
+            height = 8 + 13 * len(lines)
+            box = pygame.Rect(4, 156 - height, 232, height)
+            draw_gba_panel(surface, box)
+            for i, line in enumerate(lines):
+                draw_fitted_text(surface, line, box.x + 8, box.y + 4 + 13 * i, 216, self.font_sm)
 
         # 6. Pause Menu
         if self.is_menu_open:
