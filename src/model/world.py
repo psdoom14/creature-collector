@@ -59,17 +59,24 @@ TILE_KINDS: Dict[str, TileKind] = _kinds(
     # Indoors
     TileKind("floor", True), TileKind("mat", True), TileKind("wall", False),
     TileKind("counter", False, talk_through=True), TileKind("machine", False),
-    TileKind("plant", False), TileKind("pc", False),
+    TileKind("plant", False), TileKind("pc", False), TileKind("table", False),
+    TileKind("bookshelf", False),
 )
 
 
 @dataclass(frozen=True)
 class Warp:
-    """Stepping on (x, y) moves the player to ``target``, facing ``facing``."""
+    """Stepping on (x, y) moves the player to ``target``, facing ``facing``.
+
+    If ``required_flag`` is set, the warp only works once that story flag is set;
+    until then the player is stopped and shown ``blocked_lines``.
+    """
     x: int
     y: int
     target: Location
     facing: Direction
+    required_flag: Optional[str] = None
+    blocked_lines: Tuple[str, ...] = ()
 
 
 class WorldMap:
@@ -164,7 +171,8 @@ class WorldMap:
                 tile_row.append(legend[ch])
             tiles.append(tile_row)
         warps = [Warp(w["x"], w["y"], Location(w["to"], w["tx"], w["ty"]),
-                      Direction.from_name(w.get("facing", "down")))
+                      Direction.from_name(w.get("facing", "down")),
+                      w.get("requires"), tuple(w.get("blocked_lines", ())))
                  for w in data.get("warps", [])]
         entities = [Interactable.from_data(e) for e in data.get("entities", [])]
         return cls(data["id"], data["name"], tiles, warps, entities,
@@ -198,15 +206,18 @@ class StepResult:
     moved: bool
     warped: bool = False
     previous: Optional[Location] = None
+    blocked_lines: Tuple[str, ...] = ()   # why a gated warp stopped the player
 
 
 class Explorer:
     """The player's presence in the world: where they stand and which way they face."""
 
-    def __init__(self, world: World, location: Location, facing: Direction = Direction.DOWN):
+    def __init__(self, world: World, location: Location, facing: Direction = Direction.DOWN,
+                 flags=None):
         self._world = world
         self._location = location
         self._facing = facing
+        self._flags = flags  # StoryFlags, used for gated warps
         world.get(location.map_id)  # fail fast on a bad map id
 
     @property
@@ -242,6 +253,8 @@ class Explorer:
             return StepResult(moved=False)
         previous = self._location
         warp = self.current_map.warp_at(target.x, target.y)
+        if warp and warp.required_flag and not (self._flags and self._flags.has(warp.required_flag)):
+            return StepResult(moved=False, blocked_lines=warp.blocked_lines or ("You can't go that way yet.",))
         if warp:
             self._location = warp.target
             self._facing = warp.facing
@@ -262,10 +275,10 @@ class Explorer:
                 entity = m.entity_at(beyond.x, beyond.y)
         return entity
 
-    def interact(self, trainer) -> Optional[Interaction]:
+    def interact(self, state) -> Optional[Interaction]:
         """Talk to / read whatever is in front of the player (polymorphic ``interact()``)."""
         target = self.facing_target()
-        return target.interact(trainer, self._facing) if target else None
+        return target.interact(state, self._facing) if target else None
 
     def roll_encounter(self, rng: Optional[random.Random] = None) -> Optional[str]:
         """After a step: the encounter-table key if a wild creature appears, else None."""

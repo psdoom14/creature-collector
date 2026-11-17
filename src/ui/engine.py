@@ -56,7 +56,9 @@ class GameEngine:
             return None
 
     def new_game(self) -> None:
-        self._init_default_game_state()
+        """A real new game: no creatures yet; the professor's intro and lab come next."""
+        trainer = Trainer("PLAYER", Party([]), money=3000)
+        self.game_state = GameState(trainer, Pokedex(), current_route="Fernvale Town")
 
     def continue_game(self) -> bool:
         """Make the saved game current. Returns False if there is no usable save."""
@@ -67,6 +69,7 @@ class GameEngine:
         return True
 
     def _init_default_game_state(self) -> None:
+        """Quick-start state (used by tests and tools): already has a Charmander and items."""
         """Create initial player and inventory state."""
         starter = self.data_loader.get_creature(4, level=5)  # Charmander
         party = Party([starter])
@@ -81,7 +84,8 @@ class GameEngine:
         pokedex = Pokedex()
         pokedex.register_caught(starter.species_id)
 
-        self.game_state = GameState(trainer, pokedex, current_route="Route 1")
+        self.game_state = GameState(trainer, pokedex, current_route="Fernvale Town")
+        self.game_state.flags.set("has_starter")
 
     @property
     def current_scene(self) -> Optional[Scene]:

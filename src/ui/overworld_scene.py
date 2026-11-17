@@ -11,6 +11,8 @@ from typing import List, Optional, Tuple
 import pygame
 
 from src.model.direction import Direction
+from src.model.entities import StarterBall
+from src.model.story import give_starter, pick_rival_starter
 from src.model.world import Explorer, Location, StepResult
 from src.save_manager import SaveManager
 from src.ui.bag_scene import BagScene
@@ -21,7 +23,10 @@ from src.ui.components import (
 from src.ui.party_scene import PartyScene
 from src.ui.pokedex_scene import PokedexScene
 from src.ui.scene import Scene
+from src.ui.sprite_renderer import SpriteRenderer
 from src.ui.world_renderer import TILE, CharacterSprites, MapRenderer
+
+RIVAL_NAME = "JUNO"
 
 TALK_KEYS = (pygame.K_z, pygame.K_SPACE)
 MENU_KEYS = (pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_TAB)
@@ -36,7 +41,8 @@ MOVE_KEYS = {
 
 
 class OverworldScene(Scene):
-    """Modes: WALK (free movement), DIALOGUE (text box open), MENU (pause menu open)."""
+    """Modes: WALK (free movement), DIALOGUE (text box open), MENU (pause menu open),
+    CONFIRM_STARTER (YES/NO over a starter ball)."""
 
     STEP_SECONDS = 0.20
     FADE_SECONDS = 0.18
@@ -49,7 +55,7 @@ class OverworldScene(Scene):
         state = engine.game_state
         start = state.location or engine.data_loader.start_location()
         facing = state.facing if state.location else engine.data_loader.start_facing()
-        self.explorer = Explorer(engine.world, start, facing)
+        self.explorer = Explorer(engine.world, start, facing, flags=state.flags)
         self.renderer = MapRenderer(self.explorer.current_map)
 
         self.font = get_font(10)
@@ -73,6 +79,8 @@ class OverworldScene(Scene):
         self.pause_menu = MenuBox(pygame.Rect(150, 8, 84, 88), ["POKÉDEX", "PARTY", "BAG", "SAVE", "EXIT"])
         self.textbox = TextBox(pygame.Rect(4, 110, 232, 46))
         self.dialogue: List[str] = []
+        self.starter_menu = MenuBox(pygame.Rect(180, 64, 56, 42), ["YES", "NO"])
+        self.offered_species: Optional[int] = None
 
         self.notification_text: Optional[str] = None
         self.notification_timer = 0.0
@@ -164,6 +172,8 @@ class OverworldScene(Scene):
         if self.mode == "DIALOGUE":
             if key in ADVANCE_KEYS:
                 self._advance_dialogue()
+        elif self.mode == "CONFIRM_STARTER":
+            self._handle_starter_key(key)
         elif self.mode == "MENU":
             self._handle_menu_key(key)
         elif key in MOVE_KEYS:
@@ -202,6 +212,9 @@ class OverworldScene(Scene):
             return
         before = self.explorer.location
         result: StepResult = self.explorer.step(direction)
+        if result.blocked_lines:
+            self._open_dialogue(result.blocked_lines)
+            return
         if not result.moved:
             return
         if result.warped:
@@ -230,17 +243,69 @@ class OverworldScene(Scene):
     # ------------------------------------------------------------------
     # Talking
     # ------------------------------------------------------------------
-    def _interact(self) -> None:
-        result = self.explorer.interact(self.engine.game_state.trainer)
-        if result is None:
-            return
-        if result.effect == "healed":
-            # Wake up here after blacking out.
-            self.engine.game_state.respawn_location = self.explorer.location
+    def _open_dialogue(self, lines) -> None:
         self.held_direction = None
-        self.dialogue = list(result.lines)
+        self.dialogue = list(lines)
         self.mode = "DIALOGUE"
         self.textbox.set_message(self.dialogue.pop(0) if self.dialogue else "...")
+
+    def _interact(self) -> None:
+        state = self.engine.game_state
+        result = self.explorer.interact(state)
+        if result is None:
+            return
+        lines = list(result.lines)
+        if result.effect == "healed":
+            # Wake up here after blacking out.
+            state.respawn_location = self.explorer.location
+        elif result.effect == "give_items":
+            for item_id, qty in result.data["items"].items():
+                item = self.engine.data_loader.get_item(item_id, qty)
+                state.trainer.add_item(item, qty)
+                lines.append(f"{state.trainer.name} received {qty} {item.name}!")
+        elif result.effect == "offer_starter":
+            self._offer_starter(result.data["species_id"])
+            return
+        self._open_dialogue(lines)
+
+    # ------------------------------------------------------------------
+    # Choosing a starter
+    # ------------------------------------------------------------------
+    def _offer_starter(self, species_id: int) -> None:
+        data = self.engine.data_loader.get_species_data(species_id)
+        self.offered_species = species_id
+        self.starter_menu.selected_index = 0
+        self.held_direction = None
+        self.mode = "CONFIRM_STARTER"
+        self.textbox.set_message(f"Do you want {data['name'].upper()}, the {data['types'][0]} creature?")
+
+    def _handle_starter_key(self, key: int) -> None:
+        if not self.textbox.is_finished_typing:
+            if key in ADVANCE_KEYS:
+                self.textbox.advance()
+            return
+        choice = 1 if key in CANCEL_KEYS else self.starter_menu.handle_input(key)
+        if choice is None:
+            return
+        species_id, self.offered_species = self.offered_species, None
+        if choice == 1:
+            self.mode = "WALK"
+            return
+        self._accept_starter(species_id)
+
+    def _accept_starter(self, species_id: int) -> None:
+        loader, state = self.engine.data_loader, self.engine.game_state
+        starters = {e.species_id: loader.get_species_data(e.species_id)["types"]
+                    for e in self.explorer.current_map.entities if isinstance(e, StarterBall)}
+        rival = pick_rival_starter(species_id, starters, loader.get_type_chart())
+        creature = loader.get_creature(species_id, level=5)
+        give_starter(state, creature, rival)
+        rival_name = loader.get_species_data(rival)["name"].upper()
+        self._open_dialogue([
+            f"{state.trainer.name} received {creature.name.upper()}!",
+            f"{RIVAL_NAME}: Then I'll take {rival_name}! Its type is strong against yours.",
+            f"{RIVAL_NAME}: Let's both get stronger. See you out there!",
+        ])
 
     def _advance_dialogue(self) -> None:
         if not self.textbox.is_finished_typing:
@@ -306,7 +371,8 @@ class OverworldScene(Scene):
 
         # People, signs and the player, back to front
         world_map = self.explorer.current_map
-        drawables = [(e.y, 0, e) for e in world_map.entities]
+        state = self.engine.game_state
+        drawables = [(e.y, 0, e) for e in world_map.entities if e.is_present(state)]
         drawables.append((py / TILE, 1, None))
         for _, _, entity in sorted(drawables, key=lambda d: (d[0], d[1])):
             if entity is not None:
@@ -352,5 +418,23 @@ class OverworldScene(Scene):
 
         if self.mode == "DIALOGUE":
             self.textbox.draw(surface)
+        elif self.mode == "CONFIRM_STARTER":
+            self._draw_starter_preview(surface)
         elif self.mode == "MENU":
             self.pause_menu.draw(surface)
+
+    def _draw_starter_preview(self, surface: pygame.Surface) -> None:
+        sid = self.offered_species
+        if sid is None:
+            return
+        data = self.engine.data_loader.get_species_data(sid)
+        panel = pygame.Rect(76, 18, 88, 88)
+        draw_gba_panel(surface, panel)
+        sprite = SpriteRenderer.get_creature_sprite(sid, data["name"], data["types"][0],
+                                                    is_back=False, size=(64, 64))
+        surface.blit(sprite, (panel.x + 12, panel.y + 4))
+        draw_fitted_text(surface, data["name"].upper(), panel.x + 4, panel.y + 70, panel.width - 8,
+                         self.font_sm, align="center")
+        self.textbox.draw(surface)
+        if self.textbox.is_finished_typing:
+            self.starter_menu.draw(surface)

@@ -103,6 +103,7 @@ class TestEntities(unittest.TestCase):
         self.world = tiny_world()
         self.ex = Explorer(self.world, Location("tiny", 1, 1), Direction.DOWN)
         self.trainer = Trainer("A", Party([self.loader.get_creature(4, 5)]))
+        self.state = GameState(self.trainer)
 
     def test_hierarchy(self):
         self.assertTrue(issubclass(Healer, NPC))
@@ -114,19 +115,19 @@ class TestEntities(unittest.TestCase):
 
     def test_sign(self):
         self.ex.teleport(Location("tiny", 3, 3), Direction.DOWN)
-        result = self.ex.interact(self.trainer)
+        result = self.ex.interact(self.state)
         self.assertEqual(result.lines, ("Welcome to Tiny Town!",))
 
     def test_npc_turns_to_face_the_player(self):
         self.ex.teleport(Location("tiny", 2, 4), Direction.LEFT)
         npc = self.ex.facing_target()
         self.assertIsInstance(npc, NPC)
-        self.ex.interact(self.trainer)
+        self.ex.interact(self.state)
         self.assertEqual(npc.facing, Direction.RIGHT)
 
     def test_talking_to_nothing(self):
         self.ex.teleport(Location("tiny", 1, 1), Direction.RIGHT)
-        self.assertIsNone(self.ex.interact(self.trainer))
+        self.assertIsNone(self.ex.interact(self.state))
 
     def test_healer_heals_across_the_counter(self):
         mon = self.trainer.party.creatures[0]
@@ -134,7 +135,7 @@ class TestEntities(unittest.TestCase):
         self.ex.teleport(Location("tiny", 2, 4), Direction.UP)
         # (2,3) is the counter; the healer stands behind it at (2,2)
         self.assertIsInstance(self.ex.facing_target(), Healer)
-        result = self.ex.interact(self.trainer)
+        result = self.ex.interact(self.state)
         self.assertFalse(mon.is_fainted)
         self.assertEqual(result.effect, "healed")
         self.assertGreater(len(result.lines), 1)

@@ -140,8 +140,10 @@ class TestSaveAndTitle(_EngineTest):
         title.menu.selected_index = title.options.index("NEW GAME")
         press(title, pygame.K_RETURN)
 
-        self.assertIsInstance(fresh.current_scene, OverworldScene)
+        from src.ui.intro_scene import IntroScene
+        self.assertIsInstance(fresh.current_scene, IntroScene, "new game starts with the professor")
         self.assertLess(fresh.game_state.trainer.money, 5000)
+        self.assertEqual(fresh.game_state.trainer.party.size, 0)
 
     def test_game_state_round_trips_position_and_play_time(self):
         gs = self.engine.game_state

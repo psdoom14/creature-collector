@@ -134,6 +134,14 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - A test walks the whole world from the start tile and checks every map and the nurse can be reached and every warp lands safely.
 - Controls: arrows/WASD walk (hold to keep walking), Z/Space talk, Enter/Esc menu.
 
+**Phase 5 done (2026-11-17).** 120 tests pass (+12 in `tests/test_story.py`).
+- NEW GAME now runs `IntroScene`: PROF. CEDAR's welcome speech, then you type your name (1–8 characters), then you start in Fernvale Town with no creatures. (`GameEngine`'s default state is still a quick-start with a Charmander, used by tests and tools.)
+- New map `professor_lab` (door on the right-hand house in Fernvale). Three `StarterBall` entities on the table; facing one and pressing Z shows the creature with YES/NO.
+- The rival JUNO takes the starter whose type beats yours (`story.pick_rival_starter`, using the type chart); that species is saved as `rival_starter` for the rival battle in Phase 6.
+- `Professor` (an `NPC` subclass) says different things before/after you have a starter and gives 5 Poke Balls and 3 Potions once.
+- Story flags (`StoryFlags`) are saved; warps can require a flag — the exit north of Fernvale is locked until `has_starter`, with MIA's warning.
+- `interact()` now receives the whole `GameState`, so entities can read flags as well as the trainer.
+
 ### Demo world (original names to be decided)
 - **Town 1** — player's home, professor's lab, exit north.
 - **Route** — tall grass, a couple of trainers, signs.

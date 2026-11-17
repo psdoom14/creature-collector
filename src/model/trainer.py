@@ -122,6 +122,12 @@ class Trainer:
     def name(self) -> str:
         return self._name
 
+    def rename(self, name: str) -> None:
+        name = name.strip()
+        if not name:
+            raise ValueError("A trainer needs a name")
+        self._name = name
+
     @property
     def party(self) -> Party:
         return self._party

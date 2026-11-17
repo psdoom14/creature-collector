@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 import pygame
 
 from src.model.direction import Direction
-from src.model.entities import Character, Interactable, Sign
+from src.model.entities import Character, Interactable, Sign, StarterBall
 from src.model.world import WorldMap
 
 TILE = 16
@@ -243,6 +243,22 @@ class TileArt:
         pygame.draw.circle(s, (104, 192, 96), (6, 5), 2)
 
     @classmethod
+    def _paint_table(cls, s):
+        cls._paint_floor(s)
+        pygame.draw.rect(s, (200, 168, 120), (0, 3, 16, 10))
+        pygame.draw.line(s, (232, 208, 160), (0, 4), (15, 4))
+        pygame.draw.line(s, (136, 104, 64), (0, 12), (15, 12))
+
+    @classmethod
+    def _paint_bookshelf(cls, s):
+        s.fill((136, 88, 48))
+        for y, cols in ((2, ((224, 72, 72), (72, 120, 200), (88, 168, 88))),
+                        (9, ((232, 200, 72), (160, 96, 184), (224, 72, 72)))):
+            for i, col in enumerate(cols):
+                pygame.draw.rect(s, col, (2 + i * 4, y, 3, 5))
+        pygame.draw.line(s, (88, 56, 32), (0, 8), (15, 8))
+
+    @classmethod
     def _paint_pc(cls, s):
         cls._paint_floor(s)
         pygame.draw.rect(s, (200, 204, 216), (2, 2, 12, 9))
@@ -305,6 +321,18 @@ class CharacterSprites:
         return out
 
 
+def ball_sprite() -> pygame.Surface:
+    """A small red-and-white catch ball resting on a table."""
+    s = pygame.Surface((16, 16), pygame.SRCALPHA)
+    pygame.draw.circle(s, (248, 248, 248), (8, 8), 5)
+    pygame.draw.rect(s, (224, 56, 48), (3, 3, 11, 5))
+    pygame.draw.circle(s, (40, 40, 48), (8, 8), 5, 1)
+    pygame.draw.line(s, (40, 40, 48), (3, 8), (13, 8))
+    pygame.draw.circle(s, (248, 248, 248), (8, 8), 2)
+    pygame.draw.circle(s, (40, 40, 48), (8, 8), 2, 1)
+    return s
+
+
 def sign_sprite() -> pygame.Surface:
     s = pygame.Surface((16, 16), pygame.SRCALPHA)
     pygame.draw.rect(s, (112, 72, 40), (7, 9, 2, 7))
@@ -324,6 +352,7 @@ class MapRenderer:
         self.pixel_h = world_map.height * TILE
         self._frames: List[pygame.Surface] = [self._render(f) for f in range(WATER_FRAMES)]
         self._sign = sign_sprite()
+        self._ball = ball_sprite()
 
     def _render(self, water_frame: int) -> pygame.Surface:
         surf = pygame.Surface((self.pixel_w, self.pixel_h))
@@ -355,6 +384,8 @@ class MapRenderer:
             surface.blit(sprite, (sx, sy - (sprite.get_height() - TILE)))
         elif isinstance(entity, Sign):
             surface.blit(self._sign, (sx, sy))
+        elif isinstance(entity, StarterBall):
+            surface.blit(self._ball, (sx, sy - 3))
 
     def draw_grass_overlay(self, surface: pygame.Surface, px: float, py: float, cam: Tuple[int, int]) -> None:
         """Tall-grass blades over the lower half of whoever stands in it."""

@@ -2,21 +2,23 @@
 
     Interactable (abstract)          has a position, blocks movement, interact()
     ├── Sign                         shows its text
+    ├── StarterBall                  offers its creature until it has been taken
     └── Character (abstract)         has a name and a facing direction
         └── NPC                      turns to face you and talks
-            └── Healer               talks, then heals your whole party
+            ├── Healer               talks, then heals your whole party
+            └── Professor            different lines before/after you have a starter, gives a gift once
 
-Later phases add more subclasses (Professor, TrainerNPC, GymLeader) without
-changing the overworld: it just calls ``interact()``.
+``interact(state, player_facing)`` gets the whole GameState (trainer, flags, ...),
+so each subclass decides what it needs. The overworld just calls it.
 """
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Tuple, Type
 
 from src.model.direction import Direction
 
 if TYPE_CHECKING:
-    from src.model.trainer import Trainer
+    from src.model.game_state import GameState
 
 
 @dataclass(frozen=True)
@@ -25,6 +27,7 @@ class Interaction:
     speaker: str
     lines: Tuple[str, ...]
     effect: Optional[str] = None
+    data: Dict[str, Any] = field(default_factory=dict)
 
 
 class Interactable(ABC):
@@ -58,8 +61,12 @@ class Interactable(ABC):
     def blocks_movement(self) -> bool:
         return True
 
+    def is_present(self, state: "GameState") -> bool:
+        """Whether this is drawn on the map (a taken starter ball isn't)."""
+        return True
+
     @abstractmethod
-    def interact(self, trainer: "Trainer", player_facing: Direction) -> Interaction:
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
         """React to the player, who is facing ``player_facing`` towards this object."""
 
     @classmethod
@@ -89,12 +96,42 @@ class Sign(Interactable):
     def lines(self) -> Tuple[str, ...]:
         return self._lines
 
-    def interact(self, trainer: "Trainer", player_facing: Direction) -> Interaction:
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
         return Interaction("", self._lines)
 
     @classmethod
     def _from_data(cls, data: Dict[str, Any]) -> "Sign":
         return cls(data["x"], data["y"], data.get("lines", []))
+
+
+class StarterBall(Interactable):
+    """A ball on the professor's table holding one of the starter creatures."""
+    KIND = "starter_ball"
+
+    def __init__(self, x: int, y: int, species_id: int):
+        super().__init__(x, y)
+        self._species_id = species_id
+
+    @property
+    def species_id(self) -> int:
+        return self._species_id
+
+    def _taken_flag(self) -> str:
+        return f"starter_taken_{self._species_id}"
+
+    def is_present(self, state: "GameState") -> bool:
+        return not state.flags.has(self._taken_flag())
+
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
+        if not self.is_present(state):
+            return Interaction("", ("The table is empty here.",))
+        if state.flags.has("has_starter"):
+            return Interaction("", ("You already have a partner.",))
+        return Interaction("", (), effect="offer_starter", data={"species_id": self._species_id})
+
+    @classmethod
+    def _from_data(cls, data: Dict[str, Any]) -> "StarterBall":
+        return cls(data["x"], data["y"], int(data["species"]))
 
 
 class Character(Interactable, ABC):
@@ -137,7 +174,7 @@ class NPC(Character):
     def lines(self) -> Tuple[str, ...]:
         return self._lines
 
-    def interact(self, trainer: "Trainer", player_facing: Direction) -> Interaction:
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
         self.turn_to(player_facing)
         return Interaction(self._name, self._lines)
 
@@ -153,9 +190,9 @@ class Healer(NPC):
 
     FAREWELL = ("Your creatures are fully rested.", "Come back any time!")
 
-    def interact(self, trainer: "Trainer", player_facing: Direction) -> Interaction:
-        greeting = super().interact(trainer, player_facing)
-        trainer.party.heal_all()
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
+        greeting = super().interact(state, player_facing)
+        state.trainer.party.heal_all()
         return Interaction(self._name, greeting.lines + self.FAREWELL, effect="healed")
 
     @classmethod
@@ -163,3 +200,34 @@ class Healer(NPC):
         data = dict(data)
         data.setdefault("palette", "pink")
         return super()._from_data(data)
+
+
+class Professor(NPC):
+    """The professor: one speech before you have a starter, another after, and a one-time gift."""
+    KIND = "professor"
+    GIFT_FLAG = "got_professor_gift"
+
+    def __init__(self, x: int, y: int, name: str, lines: Sequence[str],
+                 after_lines: Sequence[str] = (), gift: Optional[Dict[str, int]] = None,
+                 gift_lines: Sequence[str] = (), facing: Direction = Direction.DOWN,
+                 palette: str = "brown"):
+        super().__init__(x, y, name, lines, facing, palette)
+        self._after_lines = tuple(after_lines) or self._lines
+        self._gift = dict(gift or {})
+        self._gift_lines = tuple(gift_lines) or ("Take these. They'll help you on your journey!",)
+
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
+        self.turn_to(player_facing)
+        if not state.flags.has("has_starter"):
+            return Interaction(self._name, self._lines)
+        if self._gift and not state.flags.has(self.GIFT_FLAG):
+            state.flags.set(self.GIFT_FLAG)
+            return Interaction(self._name, self._gift_lines, effect="give_items",
+                               data={"items": dict(self._gift)})
+        return Interaction(self._name, self._after_lines)
+
+    @classmethod
+    def _from_data(cls, data: Dict[str, Any]) -> "Professor":
+        return cls(data["x"], data["y"], data.get("name", "PROFESSOR"), data.get("lines", []),
+                   data.get("after_lines", []), data.get("gift"), data.get("gift_lines", []),
+                   Direction.from_name(data.get("facing", "down")), data.get("palette", "brown"))

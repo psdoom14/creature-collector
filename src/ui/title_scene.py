@@ -35,7 +35,10 @@ class TitleScene(Scene):
             if not self.engine.continue_game():
                 return
         elif option == "NEW GAME":
+            from src.ui.intro_scene import IntroScene
             self.engine.new_game()
+            self.engine.change_scene(IntroScene(self.engine))
+            return
         elif option == "QUIT":
             self.engine.is_running = False
             return

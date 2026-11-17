@@ -7,6 +7,7 @@ from src.model.creature import CreatureFactory
 from src.model.item import ItemFactory
 from src.model.move import MoveFactory
 from src.model.pokedex import Pokedex
+from src.model.story import StoryFlags
 from src.model.trainer import Party, PCBox, Trainer
 from src.model.world import Location
 
@@ -24,6 +25,8 @@ class GameState:
         location: Optional[Location] = None,
         facing: Direction = Direction.DOWN,
         respawn_location: Optional[Location] = None,
+        flags: Optional[StoryFlags] = None,
+        rival_starter: Optional[int] = None,
     ):
         self.trainer = trainer
         self.pokedex = pokedex or Pokedex()
@@ -35,6 +38,10 @@ class GameState:
         self.facing: Direction = facing
         #: Where the player wakes up after blacking out (the last healing center used).
         self.respawn_location: Optional[Location] = respawn_location
+        #: Story events that have happened ("has_starter", ...).
+        self.flags: StoryFlags = flags or StoryFlags()
+        #: Species the rival chose (None until the player picks a starter).
+        self.rival_starter: Optional[int] = rival_starter
 
     @property
     def play_time(self) -> float:
@@ -60,6 +67,8 @@ class GameState:
             "location": self.location.to_dict() if self.location else None,
             "facing": self.facing.key,
             "respawn_location": self.respawn_location.to_dict() if self.respawn_location else None,
+            "flags": self.flags.to_list(),
+            "rival_starter": self.rival_starter,
         }
 
     @staticmethod
@@ -103,4 +112,6 @@ class GameState:
             facing=Direction.from_name(data.get("facing", "down")),
             respawn_location=(Location.from_dict(data["respawn_location"])
                               if data.get("respawn_location") else None),
+            flags=StoryFlags.from_list(data.get("flags", ["has_starter"])),
+            rival_starter=data.get("rival_starter"),
         )

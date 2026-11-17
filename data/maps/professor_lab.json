@@ -1,0 +1,108 @@
+{
+  "id": "professor_lab",
+  "name": "Professor's Lab",
+  "legend": {
+    "#": "wall",
+    "B": "bookshelf",
+    "M": "mat",
+    "Q": "pc",
+    "_": "floor",
+    "p": "plant",
+    "t": "table"
+  },
+  "rows": [
+    "###########",
+    "#BB_____BB#",
+    "#_________#",
+    "#___ttt___#",
+    "#_________#",
+    "#Q_______p#",
+    "#_________#",
+    "#_________#",
+    "####MMM####"
+  ],
+  "warps": [
+    {
+      "x": 4,
+      "y": 8,
+      "to": "fernvale_town",
+      "tx": 15,
+      "ty": 5,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "to": "fernvale_town",
+      "tx": 15,
+      "ty": 5,
+      "facing": "down"
+    },
+    {
+      "x": 6,
+      "y": 8,
+      "to": "fernvale_town",
+      "tx": 15,
+      "ty": 5,
+      "facing": "down"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "professor",
+      "x": 5,
+      "y": 2,
+      "name": "PROF. CEDAR",
+      "facing": "down",
+      "palette": "brown",
+      "lines": [
+        "Ah, there you are!",
+        "On the table are three creatures. Each one is looking for a partner.",
+        "Go on, pick the one you like best!"
+      ],
+      "after_lines": [
+        "Creatures grow stronger as they battle together.",
+        "Brookhaven City is north, past Route 1. Good luck!"
+      ],
+      "gift": {
+        "poke_ball": 5,
+        "potion": 3
+      },
+      "gift_lines": [
+        "Wonderful choice!",
+        "Take these Poke Balls and Potions with you.",
+        "Throw a ball at a weakened wild creature to catch it!"
+      ]
+    },
+    {
+      "kind": "starter_ball",
+      "x": 4,
+      "y": 3,
+      "species": 4
+    },
+    {
+      "kind": "starter_ball",
+      "x": 5,
+      "y": 3,
+      "species": 7
+    },
+    {
+      "kind": "starter_ball",
+      "x": 6,
+      "y": 3,
+      "species": 1
+    },
+    {
+      "kind": "npc",
+      "x": 8,
+      "y": 4,
+      "name": "JUNO",
+      "facing": "left",
+      "palette": "purple",
+      "lines": [
+        "JUNO: Hey! I'm Juno. The Professor asked me to help out today.",
+        "Pick your partner first. I'll take one after you!"
+      ]
+    }
+  ]
+}

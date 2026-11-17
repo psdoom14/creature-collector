@@ -37,7 +37,12 @@
       "to": "route_1",
       "tx": 7,
       "ty": 22,
-      "facing": "up"
+      "facing": "up",
+      "requires": "has_starter",
+      "blocked_lines": [
+        "MIA: Wait! Wild creatures live in the tall grass up ahead.",
+        "Go see the Professor at the lab first. You need a partner!"
+      ]
     },
     {
       "x": 10,
@@ -45,6 +50,19 @@
       "to": "route_1",
       "tx": 8,
       "ty": 22,
+      "facing": "up",
+      "requires": "has_starter",
+      "blocked_lines": [
+        "MIA: Wait! Wild creatures live in the tall grass up ahead.",
+        "Go see the Professor at the lab first. You need a partner!"
+      ]
+    },
+    {
+      "x": 15,
+      "y": 4,
+      "to": "professor_lab",
+      "tx": 5,
+      "ty": 7,
       "facing": "up"
     }
   ],
