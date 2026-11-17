@@ -210,3 +210,54 @@ class TestLinkScreens(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestConnectionHelp(unittest.TestCase):
+    """Real-world connection problems get plain advice instead of raw error numbers."""
+
+    def test_every_local_address_is_listed(self):
+        from src.net.connection import local_ip_addresses
+        addresses = local_ip_addresses()
+        self.assertTrue(addresses)
+        self.assertNotIn("127.0.0.1", addresses[:-1] if len(addresses) > 1 else [])
+        for a in addresses:
+            self.assertEqual(len(a.split(".")), 4)
+
+    def test_cancelled_host_stops_listening(self):
+        import socket
+        listener = LinkListener(port=0, host="127.0.0.1")
+        port = listener.port
+        listener.close()
+        time.sleep(0.3)
+        with self.assertRaises(OSError):
+            socket.create_connection(("127.0.0.1", port), timeout=1).close()
+        # and the port can be hosted on again straight away
+        again = LinkListener(port=port, host="127.0.0.1")
+        again.close()
+
+    def test_refused_connection_explains_what_to_do(self):
+        import socket
+        s = socket.socket()
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+        s.close()                                   # nothing listens there now
+        joiner = LinkJoiner("127.0.0.1", port, timeout=2)
+        deadline = time.time() + 3
+        message = ""
+        while time.time() < deadline:
+            try:
+                joiner.poll()
+            except Exception as e:  # ConnectionLost
+                message = str(e)
+                break
+            time.sleep(0.02)
+        self.assertIn("HOST", message, "tells the player the friend must choose HOST")
+        self.assertNotIn("Errno", message)
+
+    def test_unreachable_message_mentions_wifi_and_firewall(self):
+        import errno
+        from src.net.connection import explain_connect_error
+        msg = explain_connect_error(OSError(errno.EHOSTUNREACH, "No route to host"), "10.0.0.9")
+        self.assertIn("Wi-Fi", msg)
+        self.assertIn("firewall", msg)
+        self.assertNotIn("Errno", msg)

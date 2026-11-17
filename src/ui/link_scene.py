@@ -10,7 +10,7 @@ import pygame
 
 from src.model.events import BattleEvent
 from src.model.link_battle import LINK_LEVEL, LinkAction
-from src.net.connection import DEFAULT_PORT, ConnectionLost, LinkJoiner, LinkListener, local_ip_address
+from src.net.connection import DEFAULT_PORT, ConnectionLost, LinkJoiner, LinkListener, local_ip_addresses
 from src.net.session import GuestLobby, HostLobby, LinkRejected, LinkSession
 from src.ui.battle_scene import BattleScene
 from src.ui.components import (
@@ -39,6 +39,7 @@ class LinkMenuScene(Scene):
         self.joiner: Optional[LinkJoiner] = None
         self.lobby = None
         self.timer = 0.0
+        self._addresses = ["127.0.0.1"]
 
     # ------------------------------------------------------------------
     def _team(self) -> List[int]:
@@ -110,6 +111,7 @@ class LinkMenuScene(Scene):
         except OSError as e:
             self._fail(f"Can't host on port {self.port}: {e.strerror or e}")
             return
+        self._addresses = local_ip_addresses()   # looked up once, not every frame
         self.mode = "HOSTING"
 
     # ------------------------------------------------------------------
@@ -161,8 +163,9 @@ class LinkMenuScene(Scene):
                      "JOIN: type the host's address."]
         elif self.mode == "HOSTING":
             dots = "." * (1 + int(self.timer * 2) % 3)
-            lines = [f"Your address: {local_ip_address()}", f"Port {self.port}",
-                     f"Waiting for a friend to join{dots}", "X: cancel"]
+            addresses = self._addresses
+            lines = [f"Your address: {addresses[0]}"] + [f"      or: {a}" for a in addresses[1:3]]
+            lines += [f"Port {self.port}. Waiting for a friend{dots}", "X: cancel"]
         elif self.mode == "ENTER_ADDRESS":
             cursor = "_" if int(self.timer * 2) % 2 == 0 else ""
             box = pygame.Rect(4, 26, 232, 52)
@@ -173,10 +176,11 @@ class LinkMenuScene(Scene):
         elif self.mode == "CONNECTING":
             lines = [f"Connecting to {self.address}...", "X: cancel"]
         elif self.mode == "ERROR":
-            lines = wrap_text(self.message, 216, self.font_sm)[:3] + ["Press Z to go back."]
+            info = pygame.Rect(4, 26, 232, 130)   # the error gets the whole screen
+            lines = wrap_text(self.message, 216, self.font_sm)[:7] + ["", "Press Z to go back."]
 
         draw_gba_panel(surface, info)
-        for i, line in enumerate(lines[:5]):
+        for i, line in enumerate(lines[:9]):
             draw_fitted_text(surface, line, info.x + 8, info.y + 5 + i * 13, 216, self.font_sm)
 
 

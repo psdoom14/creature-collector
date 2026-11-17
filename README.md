@@ -4,7 +4,7 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![Pygame](https://img.shields.io/badge/Pygame-2.5%2B-green)
-![Tests](https://img.shields.io/badge/tests-196%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-200%20passing-brightgreen)
 
 **📘 The OOP write-up — the four pillars mapped to exact lines, design patterns and UML diagrams — is in [docs/OOP.md](docs/OOP.md).**
 
@@ -33,7 +33,7 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
    - the ball arcs, wobbles once per shake check, and clicks shut or bursts open
    - level-up glow, status sparkles, stat arrows
 7. **Grow your team:** level-ups, new moves (choose one to forget when you already know 4), and evolution with an animated sequence.
-8. **Link battles over Wi-Fi:** Pause menu → LINK. One player hosts, the other joins by typing the host's address. Both teams fight at level 50 (copies, so nothing in either save changes); each turn both players choose, the host's game resolves it, and both screens animate the result. RUN forfeits; items are off. Both laptops must be on the same network (a phone hotspot works where college Wi-Fi blocks devices from seeing each other), and the firewall may ask to allow Python the first time (port 50505).
+8. **Link battles over Wi-Fi:** Pause menu → LINK. One player hosts, the other joins by typing the host's address. Both teams fight at level 50 (copies, so nothing in either save changes); each turn both players choose, the host's game resolves it, and both screens animate the result. RUN forfeits; items are off. Both laptops must be on the same network (a phone hotspot works where college Wi-Fi blocks devices from seeing each other), and the firewall may ask to allow Python the first time (port 50505). The host screen lists every address the host laptop has; if one laptop shares a hotspot, the other usually joins `192.168.137.1` (Windows) or the hotspot's address. On Linux with ufw, the host may need `sudo ufw allow 50505/tcp`.
 9. **Debug menu (F1 or `):** for demos. Level up party creatures, add any species at any level, remove creatures, add or remove items, change money, heal the party. Creatures that reach their evolution level evolve when you close it.
 10. **Manage everything:**
    - Party screen
@@ -91,7 +91,7 @@ creature-collector/
 │   ├── ui/                 screens (pygame): one Scene subclass per screen
 │   ├── data_loader.py      builds model objects from data/ (factories)
 │   └── save_manager.py     JSON save files
-├── tests/                  196 tests, run headless
+├── tests/                  200 tests, run headless
 ├── scripts/capture_stages.py   regenerates the screenshots above
 └── docs/
     ├── OOP.md              the OOP design write-up with UML
@@ -108,7 +108,7 @@ Key rules the code follows:
 ## Tests
 
 ```bash
-python3 -m unittest discover tests        # 196 tests, about 2 seconds, no window needed
+python3 -m unittest discover tests        # 200 tests, about 3 seconds, no window needed
 python3 scripts/capture_stages.py          # refresh screenshots/
 ```
 
