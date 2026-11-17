@@ -37,7 +37,7 @@ flowchart LR
 ```
 
 * **`src/model/`** holds every rule of the game and never imports pygame. A test enforces this:
-  [test_model_layer_has_zero_pygame_imports](../tests/test_scene_rendering.py#L44).
+  [test_model_layer_has_zero_pygame_imports](../tests/test_scene_rendering.py#L48).
 * **`src/ui/`** only draws and handles input. It asks the model to do things and animates what the model reports back.
 * **`data/`** holds the content: species, moves, items, the type chart, encounter tables and maps. Nothing is hard-coded in classes; `DataLoader` builds objects through factories.
 
@@ -45,10 +45,10 @@ flowchart LR
 
 | Concept | Example |
 |---|---|
-| Classes | 94 in total: 73 in the game rules (`src/model/`), the rest in the screens |
+| Classes | 126 in total: 73 in the game rules (`src/model/`), the rest in the screens, including the 32-class animation and transition hierarchies |
 | Objects | every creature, move, item, trainer, map and battle is an object built from data at runtime, e.g. [DataLoader.get_creature()](../src/data_loader.py#L112) |
 | Constructors that enforce valid objects | [Creature.__init__](../src/model/creature.py#L51) clamps the level and HP; [Party.__init__](../src/model/trainer.py#L44) refuses more than 6 creatures |
-| Constructor chaining | [TrainerBattle.__init__](../src/model/battle.py#L503) calls `super().__init__()`, and `GymBattle` chains onto that |
+| Constructor chaining | [TrainerBattle.__init__](../src/model/battle.py#L517) calls `super().__init__()`, and `GymBattle` chains onto that |
 | Class vs instance attributes | `Party.MAX_PARTY_SIZE` and `Creature._uid_counter` belong to the class; `_hp` and `_level` belong to each object |
 | Class methods and static methods | 30 in the model, e.g. the alternative constructors `GameState.from_dict()` and `Location.from_dict()` |
 | Properties (read-only attributes) | 132 `@property` getters in the model; see Encapsulation below |
@@ -68,7 +68,7 @@ flowchart LR
 | `Party` | `_creatures` list, exposed as a tuple ([creatures](../src/model/trainer.py#L17)) | [add()](../src/model/trainer.py#L51), [swap()](../src/model/trainer.py#L64) | at most 6 creatures |
 | `Trainer` | `_money`, `_party`, `_bag`, `_pc` | [spend()](../src/model/trainer.py#L151), [earn()](../src/model/trainer.py#L148), [receive_creature()](../src/model/trainer.py#L165) | can't overspend; a full party sends new catches to the PC |
 | `Pokedex` | `_seen`, `_caught` sets, exposed as frozensets | [register_caught()](../src/model/pokedex.py#L35) | catching also marks a species as seen |
-| `Battle` | `_state`, `_active`, `_opponent` | [execute_move()](../src/model/battle.py#L152), [use_item()](../src/model/battle.py#L180), [switch_creature()](../src/model/battle.py#L241) | the turn order and faint rules can't be bypassed |
+| `Battle` | `_state`, `_active`, `_opponent` | [execute_move()](../src/model/battle.py#L152), [use_item()](../src/model/battle.py#L180), [switch_creature()](../src/model/battle.py#L255) | the turn order and faint rules can't be bypassed |
 
 Proof in tests: [TestEncapsulation](../tests/test_oop_pillars.py#L27) checks, for example, that `creature.current_hp = 999` raises `AttributeError`.
 
@@ -124,7 +124,12 @@ Interactable ─────┬─ Sign
                                                       └─ GymLeader
 _CreatureCollection ─┬─ Party
                      └─ PCBox
-Scene ────────────── 9 screens
+Scene ────────────── 10 screens (incl. TransitionScene)
+Animation ────────┬─ SlideIn, SendOut, HitBlink, FaintDrop, ScreenShake, BallThrow, BallWobble, ...
+                  └─ MoveAnimation ─┬─ ImpactAnimation, ThunderAnimation, QuakeAnimation, GustAnimation, ...
+                                    └─ ProjectileAnimation ─ EmberAnimation, WaterAnimation, LeafAnimation, ...
+Transition ───────┬─ WildTransition
+                  └─ TrainerTransition
 ```
 
 Examples of reuse and extension:
@@ -132,9 +137,9 @@ Examples of reuse and extension:
 * **Shared code in a middle class.** [_ChipDamageStatus](../src/model/status.py#L81) implements "lose 1/16 HP each turn" once, and `Burn` and `Poison` inherit it. [_CreatureCollection](../src/model/trainer.py#L10) gives `Party` and `PCBox` the same read-only view and iteration.
 * **Extending with `super()`.**
   * [Healer.interact()](../src/model/entities.py#L206) reuses the NPC greeting, then heals the party.
-  * [TrainerBattle.__init__](../src/model/battle.py#L503) reuses all of `Battle`'s setup and adds the trainer's reserve team.
+  * [TrainerBattle.__init__](../src/model/battle.py#L517) reuses all of `Battle`'s setup and adds the trainer's reserve team.
   * [RivalTrainer._party_spec()](../src/model/entities.py#L366) adds the rival's starter to the trainer's normal team.
-* **Three levels deep.** `GymBattle` → `TrainerBattle` → `Battle`. `GymBattle` only overrides [_victory_extras()](../src/model/battle.py#L569) to add a badge; everything else (turns, prize money, sending out the next creature) is inherited.
+* **Three levels deep.** `GymBattle` → `TrainerBattle` → `Battle`. `GymBattle` only overrides [_victory_extras()](../src/model/battle.py#L583) to add a badge; everything else (turns, prize money, sending out the next creature) is inherited.
 
 Proof in tests: [TestInheritance](../tests/test_oop_pillars.py#L91), [test_trainers.test_hierarchy](../tests/test_trainers.py#L61) and [test_world.test_hierarchy](../tests/test_world.py#L108).
 
@@ -147,18 +152,21 @@ Proof in tests: [TestInheritance](../tests/test_oop_pillars.py#L91), [test_train
 | Call site | One call… | …different behaviour per class |
 |---|---|---|
 | [DamageCalculator.calculate](../src/model/damage.py#L46) | `move.attack_stat(user)` | `PhysicalMove` uses Attack, `SpecialMove` uses Sp. Atk |
-| [Battle._execute_move_step](../src/model/battle.py#L343) | `status.before_move()` | `Paralysis` may skip the turn, `Sleep` counts down then wakes up, `Burn` does nothing |
-| [Battle._end_of_turn](../src/model/battle.py#L396) | `status.on_turn_end()` | `Burn`/`Poison` deal damage, the others don't |
-| [Battle._execute_move_step](../src/model/battle.py#L377) | `effect.apply()` | inflict a status, heal the user, or change a stat |
+| [Battle._execute_move_step](../src/model/battle.py#L357) | `status.before_move()` | `Paralysis` may skip the turn, `Sleep` counts down then wakes up, `Burn` does nothing |
+| [Battle._end_of_turn](../src/model/battle.py#L410) | `status.on_turn_end()` | `Burn`/`Poison` deal damage, the others don't |
+| [Battle._execute_move_step](../src/model/battle.py#L391) | `effect.apply()` | inflict a status, heal the user, or change a stat |
 | [Battle.use_item](../src/model/battle.py#L189) | `item.use_in_battle(battle)` | potions heal your creature; [CatchBall](../src/model/item.py#L197) overrides it to throw itself at the opponent |
 | [Battle.execute_move](../src/model/battle.py#L165) | `ai.choose_move()` | `RandomAI` picks any move; `SmartAI` scores them with the type chart |
 | [SmartAI.score](../src/model/battle_ai.py#L55) | `effect.ai_score()` | a heal is worth more when hurt; a status is worthless on an already-afflicted target |
-| [Battle._resolve_faints](../src/model/battle.py#L413) | `self._on_opponent_fainted()` | `WildBattle` ends the battle; `TrainerBattle` sends out the next creature or pays the prize |
+| [Battle._resolve_faints](../src/model/battle.py#L427) | `self._on_opponent_fainted()` | `WildBattle` ends the battle; `TrainerBattle` sends out the next creature or pays the prize |
 | [Explorer.interact](../src/model/world.py#L282) | `entity.interact(state, facing)` | a sign shows text, an NPC turns and talks, the healer heals, the professor gives a gift, a starter ball offers its creature, a trainer starts a battle |
 | [Explorer.spotted_by](../src/model/world.py#L288) | `entity.notices(...)` | `False` for everything except `TrainerNPC`, which checks its line of sight |
-| [OverworldScene._start_trainer_battle](../src/ui/overworld_scene.py#L312) | `trainer.build_battle(...)` | `TrainerNPC` → `TrainerBattle` + `RandomAI`; `GymLeader` → `GymBattle` + `SmartAI`; `RivalTrainer` → its starter-led team |
+| [OverworldScene._start_trainer_battle](../src/ui/overworld_scene.py#L313) | `trainer.build_battle(...)` | `TrainerNPC` → `TrainerBattle` + `RandomAI`; `GymLeader` → `GymBattle` + `SmartAI`; `RivalTrainer` → its starter-led team |
 | [BagScene](../src/ui/bag_scene.py#L80) | `item.usable_in_field` | `True` for potions; `CatchBall` overrides it to `False` |
-| `engine.current_scene.update() / draw()` | `scene.draw(surface)` | each of the nine screens draws itself |
+| `engine.current_scene.update() / draw()` | `scene.draw(surface)` | each screen draws itself |
+| [BattleScene._mods](../src/ui/battle_scene.py#L392) | `anim.modify(side, mods)` / `anim.draw()` | a hit flickers the target, a faint drops it, a send-out grows it from a white silhouette, a ball hides it |
+| [MoveAnimation.create](../src/ui/animations.py#L361) | `MoveAnimation.create(type, category, side)` | a self-registering class per move type: Fire embers, Water bubbles, Grass leaves, an Electric bolt, a Ground quake... |
+| [Transition.draw](../src/ui/transitions.py#L31) | `transition.cover(surface, p)` | wild battles close with sweeping bars, trainer battles with a shrinking circle |
 
 Proof in tests: [TestPolymorphism](../tests/test_oop_pillars.py#L114).
 
@@ -663,7 +671,7 @@ stateDiagram-v2
 
 ## 11. Testing
 
-`python3 -m unittest discover tests` runs 149 tests in about a second, with no window needed.
+`python3 -m unittest discover tests` runs 164 tests in about a second, with no window needed.
 
 | Test file | What it proves |
 |---|---|

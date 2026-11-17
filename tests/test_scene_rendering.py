@@ -38,8 +38,12 @@ class TestSceneRendering(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Clean up Pygame subsystems."""
-        pygame.quit()
+        """Leave pygame running for the other test files (they share this process), but drop
+        cached images so nothing later reuses a surface made by this class's engine."""
+        from src.ui.world_renderer import CharacterSprites, TileArt
+        SpriteRenderer.clear_cache()
+        TileArt.clear_cache()
+        CharacterSprites._cache.clear()
 
     def test_model_layer_has_zero_pygame_imports(self):
         """Assert zero pygame imports across all modules in src/model/."""

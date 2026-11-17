@@ -208,18 +208,32 @@ class Battle(ABC):
         foe = self._opponent
         events = [BattleEvent(EventType.BALL_THROWN, f"{self._player.name} threw a {ball.name}!",
                               {"ball": ball.name})]
-        if random.random() <= ball.calc_catch_chance(foe):
+        shakes, caught = self._shake_checks(ball.calc_catch_chance(foe))
+        if caught:
             self._state = BattleState.CAUGHT
             destination = self._player.receive_creature(foe)
             where = "" if destination == "party" else " It was sent to the PC."
             events.append(BattleEvent(
                 EventType.CAUGHT, f"Gotcha! {foe.name} was caught!{where}",
-                {"creature": foe.to_dict(), "destination": destination, "uid": foe.uid},
+                {"creature": foe.to_dict(), "destination": destination, "uid": foe.uid, "shakes": shakes},
             ))
         else:
-            events.append(BattleEvent(EventType.CATCH_FAILED, "Oh no! It broke free!",
-                                      {"creature": foe.name}))
+            message = ("Oh no! It broke free!", "Aww! It appeared to be caught!",
+                       "Aargh! Almost had it!", "Shoot! It was so close, too!")[shakes]
+            events.append(BattleEvent(EventType.CATCH_FAILED, message,
+                                      {"creature": foe.name, "shakes": shakes}))
         return events
+
+    @staticmethod
+    def _shake_checks(chance: float) -> Tuple[int, bool]:
+        """Four checks, each passing with chance**(1/4): the ball wobbles once per check passed
+        (at most 3 times) and the creature is caught only if all four pass. Overall catch
+        probability stays exactly ``chance``."""
+        per_check = max(0.0, min(1.0, chance)) ** 0.25
+        passed = 0
+        while passed < 4 and random.random() < per_check:
+            passed += 1
+        return min(passed, 3), passed == 4
 
     def attempt_run(self) -> List[BattleEvent]:
         """Try to flee. Faster creatures escape more easily."""
@@ -350,7 +364,7 @@ class Battle(ABC):
         move.use()
         events.append(BattleEvent(EventType.MOVE_USED, f"{user.name} used {move.name}!",
                                   {"user": user.name, "user_uid": user.uid,
-                                   "move": move.name, "type": move.type}))
+                                   "move": move.name, "type": move.type, "category": move.category}))
 
         calc = self.calculate_damage(user, target, move)
         if not calc.hit:

@@ -18,6 +18,7 @@ from src.ui.components import (
     TYPE_COLORS,
 )
 from src.ui.sprite_renderer import SpriteRenderer
+from src.ui import animations as A
 from src.model.battle import Battle, BattleState, WildBattle
 from src.model.events import BattleEvent, EventType
 from src.model.creature import Creature
@@ -70,25 +71,53 @@ class BattleScene(Scene):
         # event is played, so the sprite doesn't swap before the "Go!" message.
         self.shown_creature: Optional[Creature] = self.battle.player_creature
 
-        # Visual animation state
-        self.enemy_shake_timer = 0.0
-        self.player_shake_timer = 0.0
-        self.enemy_y_offset = 0.0
-        self.player_y_offset = 0.0
+        # Running animations (see src/ui/animations.py). The scene only calls their
+        # update / modify / draw methods; each subclass decides what it looks like.
+        self.layout = A.BattleLayout()
+        self.anims: List[A.Animation] = []
+        self.player_out = False          # the player's creature appears with "Go!"
 
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
     def on_enter(self, **kwargs) -> None:
-        if self.sub_state != "INTRO":
+        if self.sub_state != "INTRO" or self.anims:
             return
         self._show_player_creature(self.battle.player_creature)
         self.wild_hp_bar.set_hp(self.wild_creature.current_hp, self.wild_creature.max_hp, immediate=True)
         self.textbox.set_message(self.battle.intro_message)
+        self._animate(A.SlideIn(A.FOE))
+        self._animate(A.SlideIn(A.PLAYER))   # the player's (still empty) platform
+
+    # ------------------------------------------------------------------
+    # Animations
+    # ------------------------------------------------------------------
+    @property
+    def is_animating(self) -> bool:
+        """True while an animation the player must wait for is still running."""
+        return any(a.blocking and not a.done for a in self.anims)
+
+    @property
+    def foe_in_ball(self) -> bool:
+        """The wild creature is inside a thrown ball (not drawn)."""
+        return any(getattr(a, "holds_foe", False) for a in self.anims)
+
+    def _animate(self, anim: A.Animation) -> None:
+        self.anims.append(anim)
+
+    def _forget(self, side: str) -> None:
+        """Drop lingering animations for a side (a fainted sprite, a held ball) before a new creature appears."""
+        self.anims = [a for a in self.anims if a.side != side or not a.done]
+
+    def _side_of(self, uid) -> Optional[str]:
+        if uid == self.wild_creature.uid:
+            return A.FOE
+        if self.shown_creature and uid == self.shown_creature.uid:
+            return A.PLAYER
+        return None
 
     def _show_player_creature(self, creature: Optional[Creature]) -> None:
         self.shown_creature = creature
-        self.player_y_offset = 0.0
         if creature:
             self.player_hp_bar.set_hp(creature.current_hp, creature.max_hp, immediate=True)
             self.player_exp_bar.set_ratio(creature.xp_progress, immediate=True)
@@ -123,36 +152,67 @@ class BattleScene(Scene):
 
         if kind in HP_EVENTS and "target_uid" in data:
             hp, max_hp = data["target_current_hp"], data["target_max_hp"]
-            if data["target_uid"] == foe_uid:
+            side = self._side_of(data["target_uid"])
+            if side == A.FOE:
                 self.wild_hp_bar.set_hp(hp, max_hp)
-                if kind is EventType.DAMAGE_DEALT:
-                    self.enemy_shake_timer = 0.3
-            elif mine and data["target_uid"] == mine.uid:
+            elif side == A.PLAYER:
                 self.player_hp_bar.set_hp(hp, max_hp)
-                if kind is EventType.DAMAGE_DEALT:
-                    self.player_shake_timer = 0.3
+            if side and kind is EventType.DAMAGE_DEALT:
+                self._animate(A.HitBlink(side))
+            elif side and kind in (EventType.ITEM_USED, EventType.HEAL) and event.message:
+                self._animate(A.HealSparkle(side))
+
+        elif kind is EventType.MOVE_USED:
+            attacker = self._side_of(data.get("user_uid")) or A.PLAYER
+            self._animate(A.MoveAnimation.create(data.get("type", "Normal"),
+                                                 data.get("category", "physical"), attacker))
+
+        elif kind is EventType.CRITICAL or (kind is EventType.EFFECTIVENESS
+                                             and data.get("multiplier", 1) > 1):
+            self._animate(A.ScreenShake())
 
         elif kind is EventType.FAINTED:
-            if data.get("uid") == foe_uid:
-                self.enemy_y_offset = 30.0
-            elif mine and data.get("uid") == mine.uid:
-                self.player_y_offset = 40.0
+            side = self._side_of(data.get("uid"))
+            if side:
+                self._animate(A.FaintDrop(side))
 
         elif kind is EventType.CREATURE_SENT:
             self._show_player_creature(self.battle.player_creature)
+            self._forget(A.PLAYER)
+            self.player_out = True
+            self._animate(A.SendOut(A.PLAYER))
 
         elif kind is EventType.OPPONENT_SENT:
             self.wild_creature = self.battle.opponent
-            self.enemy_y_offset = 0.0
             self.wild_hp_bar.set_hp(self.wild_creature.current_hp, self.wild_creature.max_hp, immediate=True)
             self.engine.game_state.pokedex.register_seen(self.wild_creature.species_id)
+            self._forget(A.FOE)
+            self._animate(A.SendOut(A.FOE))
 
-        elif kind is EventType.CAUGHT:
-            self.engine.game_state.pokedex.register_caught(self.wild_creature.species_id)
+        elif kind is EventType.BALL_THROWN:
+            self._animate(A.BallThrow())
+
+        elif kind in (EventType.CAUGHT, EventType.CATCH_FAILED):
+            self.anims = [a for a in self.anims if not getattr(a, "holds_foe", False)]
+            caught = kind is EventType.CAUGHT
+            self._animate(A.BallWobble(shakes=data.get("shakes", 0), caught=caught))
+            if caught:
+                self.engine.game_state.pokedex.register_caught(self.wild_creature.species_id)
+
+        elif kind is EventType.STATUS_APPLIED:
+            side = self._side_of(data.get("target_uid"))
+            if side:
+                self._animate(A.StatusSparkle(side, data.get("status", "")))
+
+        elif kind is EventType.STAT_CHANGE:
+            side = self._side_of(data.get("target_uid"))
+            if side:
+                self._animate(A.StatArrows(side, rising=data.get("change", 0) > 0))
 
         elif kind in (EventType.XP_GAINED, EventType.LEVEL_UP) and mine:
             if kind is EventType.LEVEL_UP:
                 self.player_hp_bar.set_hp(mine.current_hp, mine.max_hp)
+                self._animate(A.LevelUpGlow(A.PLAYER))
             self.player_exp_bar.set_ratio(mine.xp_progress)
 
     def _choose_next_state(self) -> None:
@@ -208,6 +268,8 @@ class BattleScene(Scene):
         if event.type != pygame.KEYDOWN:
             return
         key = event.key
+        if self.is_animating:
+            return  # wait for the animation, as on the GBA
         handler = getattr(self, f"_input_{self.sub_state.lower()}", None)
         if handler:
             handler(key)
@@ -221,6 +283,9 @@ class BattleScene(Scene):
         lead = self.battle.player_creature
         self.textbox.set_message(f"Go! {lead.name}!" if lead else "...")
         self.sub_state = "DIALOGUE"
+        if lead:
+            self.player_out = True
+            self._animate(A.SendOut(A.PLAYER))
 
     def _input_dialogue(self, key: int) -> None:
         if key in CONFIRM_KEYS and not self.textbox.advance():
@@ -315,38 +380,84 @@ class BattleScene(Scene):
         self.player_hp_bar.update(dt)
         self.player_exp_bar.update(dt)
         self.textbox.update(dt)
-        self.enemy_shake_timer = max(0.0, self.enemy_shake_timer - dt)
-        self.player_shake_timer = max(0.0, self.player_shake_timer - dt)
+        for anim in self.anims:
+            anim.update(dt)
+        # Finished animations go, except those that leave a lasting look (a fainted
+        # sprite stays down, a caught creature stays in its ball) until replaced.
+        self.anims = [a for a in self.anims if not a.done or getattr(a, "persist", False)]
+
+    def _mods(self, side: str) -> A.SpriteMods:
+        mods = A.SpriteMods()
+        for anim in self.anims:
+            anim.modify(side, mods)   # polymorphic: each animation changes the sprite its own way
+        return mods
+
+    def _intro_dx(self, side: str) -> float:
+        """How far the intro slide-in still has to move this side's platform."""
+        mods = A.SpriteMods()
+        for anim in self.anims:
+            if getattr(anim, "hides_hud", False):
+                anim.modify(side, mods)
+        return mods.dx
+
+    def _draw_creature(self, surface, sprite: pygame.Surface, side: str, top_left, ground_y: int) -> None:
+        mods = self._mods(side)
+        if not mods.visible:
+            return
+        img = sprite
+        if mods.scale != 1.0:
+            w = max(1, int(sprite.get_width() * mods.scale))
+            h = max(1, int(sprite.get_height() * mods.scale))
+            img = pygame.transform.scale(sprite, (w, h))
+        if mods.white > 0:
+            img = img.copy()
+            level = int(255 * min(1.0, mods.white))
+            img.fill((level, level, level, 0), special_flags=pygame.BLEND_RGBA_ADD)
+        cx = top_left[0] + sprite.get_width() / 2 + mods.dx
+        bottom = top_left[1] + sprite.get_height() + mods.dy
+        pos = (int(cx - img.get_width() / 2), int(bottom - img.get_height()))
+        if mods.sink:  # disappear behind the platform edge
+            surface.set_clip(pygame.Rect(0, 0, surface.get_width(), ground_y))
+        surface.blit(img, pos)
+        surface.set_clip(None)
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill((232, 240, 224))
 
-        draw_battle_platform(surface, center_x=181, center_y=60, width=88, height=26, is_player=False)
-        draw_battle_platform(surface, center_x=58, center_y=108, width=108, height=30, is_player=True)
+        # Platforms slide in with the intro, like the creature standing on them
+        draw_battle_platform(surface, center_x=181 + int(self._intro_dx(A.FOE)), center_y=60,
+                             width=88, height=26, is_player=False)
+        draw_battle_platform(surface, center_x=58 + int(self._intro_dx(A.PLAYER)), center_y=108,
+                             width=108, height=30, is_player=True)
 
-        # Opponent sprite (top right) and info card (top left)
-        e_shake_x = 3 if self.enemy_shake_timer > 0 and int(self.enemy_shake_timer * 30) % 2 == 0 else 0
-        if self.enemy_y_offset < 30:
-            enemy_surf = SpriteRenderer.get_creature_sprite(
-                self.wild_creature.species_id, self.wild_creature.name,
-                self.wild_creature.primary_type, is_back=False, size=(52, 52))
-            surface.blit(enemy_surf, (155 + e_shake_x, 20 + self.enemy_y_offset))
-        draw_gba_hp_box(
-            surface, pygame.Rect(10, 10, 105, 32),
-            name=self.wild_creature.name, level=self.wild_creature.level,
-            current_hp=self.wild_hp_bar.display_hp * self.wild_creature.max_hp,
-            max_hp=self.wild_creature.max_hp, exp_ratio=None,
-            status=self.wild_creature.status_effect,
-        )
+        # Opponent sprite (top right)
+        enemy_surf = SpriteRenderer.get_creature_sprite(
+            self.wild_creature.species_id, self.wild_creature.name,
+            self.wild_creature.primary_type, is_back=False, size=(52, 52))
+        self._draw_creature(surface, enemy_surf, A.FOE, (155, 20), ground_y=72)
 
-        # Player sprite (bottom left, back view) and info card (bottom right)
+        # Player sprite (bottom left, back view)
         mine = self.shown_creature
-        if mine and self.player_y_offset < 40:
-            p_shake_x = 3 if self.player_shake_timer > 0 and int(self.player_shake_timer * 30) % 2 == 0 else 0
+        if mine and self.player_out:
             player_surf = SpriteRenderer.get_creature_sprite(
                 mine.species_id, mine.name, mine.primary_type, is_back=True, size=(56, 56))
-            surface.blit(player_surf, (30 + p_shake_x, 62 + self.player_y_offset))
-        if mine:
+            self._draw_creature(surface, player_surf, A.PLAYER, (30, 62), ground_y=118)
+
+        # Effects (move particles, the ball, sparkles) over the sprites
+        for anim in self.anims:
+            anim.draw(surface, self.layout)
+
+        # Info cards
+        intro_sliding = any(getattr(a, "hides_hud", False) and not a.done for a in self.anims)
+        if not intro_sliding:
+            draw_gba_hp_box(
+                surface, pygame.Rect(10, 10, 105, 32),
+                name=self.wild_creature.name, level=self.wild_creature.level,
+                current_hp=self.wild_hp_bar.display_hp * self.wild_creature.max_hp,
+                max_hp=self.wild_creature.max_hp, exp_ratio=None,
+                status=self.wild_creature.status_effect,
+            )
+        if mine and self.player_out:
             draw_gba_hp_box(
                 surface, pygame.Rect(122, 64, 114, 42),
                 name=mine.name, level=mine.level,

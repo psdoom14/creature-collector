@@ -49,7 +49,11 @@ def main():
     wild_pika = engine.data_loader.get_creature(25, level=5) # Pikachu
     battle_scene = BattleScene(engine, wild_pika)
     engine.push_scene(battle_scene)
-    battle_scene.update(0.1)
+    for _ in range(12):          # let the slide-in finish
+        battle_scene.update(0.1)
+    battle_scene.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_z))   # "Go! ..."
+    for _ in range(12):          # let the send-out finish
+        battle_scene.update(0.1)
     battle_scene.draw(engine.native_surface)
     scaled = pygame.transform.scale(engine.native_surface, (720, 480))
     pygame.image.save(scaled, "screenshots/stage3_battle_encounter.png")

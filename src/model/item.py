@@ -111,7 +111,7 @@ class Item(ABC):
             return [BattleEvent(EventType.INVALID_ACTION, f"It won't have any effect on {name}.")]
         message = self.use(target)
         return [BattleEvent(EventType.ITEM_USED, message,
-                            {"item": self._id, "target": target.name,
+                            {"item": self._id, "target": target.name, "target_uid": target.uid,
                              "target_current_hp": target.current_hp, "target_max_hp": target.max_hp})]
 
     def to_dict(self) -> Dict[str, Any]:

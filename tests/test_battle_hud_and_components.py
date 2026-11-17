@@ -196,6 +196,8 @@ class TestBattleHUDAndComponents(unittest.TestCase):
         wild = self.engine.data_loader.get_creature(1, level=5)
         battle_scene = BattleScene(self.engine, wild)
         battle_scene.on_enter()
+        for _ in range(20):          # let the intro slide-in finish (keys wait for animations)
+            battle_scene.update(0.1)
 
         # Switch to MOVE_SELECT
         p_lead = battle_scene.battle.player_creature

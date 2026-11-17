@@ -26,6 +26,7 @@ from src.ui.party_scene import PartyScene
 from src.ui.pokedex_scene import PokedexScene
 from src.ui.scene import Scene
 from src.ui.sprite_renderer import SpriteRenderer
+from src.ui.transitions import TrainerTransition, Transition, TransitionScene, WildTransition
 from src.ui.world_renderer import TILE, CharacterSprites, MapRenderer
 
 RIVAL_NAME = "JUNO"
@@ -252,7 +253,7 @@ class OverworldScene(Scene):
             if wild:
                 self.engine.game_state.pokedex.register_seen(wild.species_id)
                 self.held_direction = None
-                self.engine.push_scene(BattleScene(self.engine, wild))
+                self._start_battle(BattleScene(self.engine, wild), WildTransition())
                 return
         if self._check_spotted():
             return
@@ -311,7 +312,13 @@ class OverworldScene(Scene):
         loader, state = self.engine.data_loader, self.engine.game_state
         battle = trainer.build_battle(state, loader.get_type_chart(), loader.get_creature, loader.get_move)
         state.pokedex.register_seen(battle.opponent.species_id)
-        self.engine.push_scene(BattleScene(self.engine, battle.opponent, battle=battle))
+        self._start_battle(BattleScene(self.engine, battle.opponent, battle=battle), TrainerTransition())
+
+    def _start_battle(self, battle_scene: BattleScene, transition: Transition) -> None:
+        """Flash, wipe to black (the transition), then the battle; fade back in afterwards."""
+        frame = self._last_frame if self._last_frame is not None else self.engine.native_surface
+        self.fade, self.fade_dir = 1.0, -1   # when we're shown again, fade in from black
+        self.engine.push_scene(TransitionScene(self.engine, frame, battle_scene, transition))
 
     def on_battle_end(self, battle) -> None:
         """Called by the battle scene when a battle the player didn't lose is over."""

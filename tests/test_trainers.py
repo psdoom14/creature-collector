@@ -238,6 +238,14 @@ class TestTrainerUI(unittest.TestCase):
             self.frames(1, 0.5)
         self.fail("battle never ended")
 
+    def wait_for_battle(self):
+        """Let the battle transition play, then return the battle scene."""
+        for _ in range(30):
+            if isinstance(self.engine.current_scene, BattleScene):
+                break
+            self.frames(1, 0.1)
+        return self.engine.current_scene
+
     def finish_dialogue(self):
         for _ in range(30):
             if self.ow.mode != "DIALOGUE":
@@ -260,7 +268,7 @@ class TestTrainerUI(unittest.TestCase):
         self.frames(3, 0.3)                        # the "!" pause
         self.assertEqual(self.ow.mode, "DIALOGUE")
         self.finish_dialogue()
-        battle_scene = self.engine.current_scene
+        battle_scene = self.wait_for_battle()
         self.assertIsInstance(battle_scene, BattleScene)
         self.assertIsInstance(battle_scene.battle, TrainerBattle)
 
@@ -280,7 +288,7 @@ class TestTrainerUI(unittest.TestCase):
         self.ow.teleport(Location("brookhaven_gym", leader.x, leader.y + 1), Direction.UP)
         self.key(pygame.K_z)
         self.finish_dialogue()
-        battle_scene = self.engine.current_scene
+        battle_scene = self.wait_for_battle()
         self.assertIsInstance(battle_scene.battle, GymBattle)
         self.fight_to_the_end(battle_scene)
         self.assertTrue(self.engine.game_state.badge_case.has(leader.badge))

@@ -78,7 +78,7 @@ class InflictStatus(MoveEffect):
         return [BattleEvent(
             EventType.STATUS_APPLIED,
             status.applied_message(target.name),
-            {"target": target.name, "status": status.key},
+            {"target": target.name, "target_uid": target.uid, "status": status.key},
         )]
 
 
@@ -97,7 +97,7 @@ class HealUser(MoveEffect):
         return [BattleEvent(
             EventType.HEAL,
             f"{user.name} restored {healed} HP!",
-            {"user": user.name, "healed": healed},
+            {"user": user.name, "user_uid": user.uid, "healed": healed},
         )]
 
 
@@ -123,5 +123,5 @@ class ChangeStat(MoveEffect):
         return [BattleEvent(
             EventType.STAT_CHANGE,
             f"{who.name}'s {self.STAT_NAMES.get(self._stat, self._stat)} {verb}!",
-            {"target": who.name, "stat": self._stat, "change": changed},
+            {"target": who.name, "target_uid": who.uid, "stat": self._stat, "change": changed},
         )]

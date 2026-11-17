@@ -116,6 +116,10 @@ class TestOverworld(unittest.TestCase):
                      and world_map.is_passable(x - 1, y) and not world_map.tile_at(x - 1, y).encounters)
         self.ow.teleport(Location("route_1", grass[0] - 1, grass[1]), Direction.RIGHT)
         self.walk(pygame.K_RIGHT, 1)
+        for _ in range(30):          # the battle transition plays first
+            if isinstance(self.engine.current_scene, BattleScene):
+                break
+            self.frames(1, 0.1)
         self.assertIsInstance(self.engine.current_scene, BattleScene)
 
     def test_menu_opens_with_enter_and_talk_uses_z(self):

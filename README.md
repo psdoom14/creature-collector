@@ -4,7 +4,7 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![Pygame](https://img.shields.io/badge/Pygame-2.5%2B-green)
-![Tests](https://img.shields.io/badge/tests-149%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-164%20passing-brightgreen)
 
 **📘 The OOP write-up — the four pillars mapped to exact lines, design patterns and UML diagrams — is in [docs/OOP.md](docs/OOP.md).**
 
@@ -25,8 +25,15 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
    - Trainers who spot you in their line of sight.
    - Your rival.
    - Gym Leader WREN, for the GALE BADGE.
-6. **Grow your team:** level-ups, new moves (choose one to forget when you already know 4), and evolution with an animated sequence.
-7. **Manage everything:**
+6. **GBA-style animations:**
+   - battle-start transitions (sweeping bars for wild battles, a closing circle for trainers)
+   - creatures slide in and pop out of their ball
+   - a move effect per type: embers, bubbles, leaves, lightning, quakes, gusts and more
+   - hits flicker, fainted creatures drop away
+   - the ball arcs, wobbles once per shake check, and clicks shut or bursts open
+   - level-up glow, status sparkles, stat arrows
+7. **Grow your team:** level-ups, new moves (choose one to forget when you already know 4), and evolution with an animated sequence.
+8. **Manage everything:**
    - Party screen
    - Pokédex
    - Bag (use items on a chosen creature)
@@ -81,7 +88,7 @@ creature-collector/
 │   ├── ui/                 screens (pygame): one Scene subclass per screen
 │   ├── data_loader.py      builds model objects from data/ (factories)
 │   └── save_manager.py     JSON save files
-├── tests/                  149 tests, run headless
+├── tests/                  164 tests, run headless
 ├── scripts/capture_stages.py   regenerates the screenshots above
 └── docs/
     ├── OOP.md              the OOP design write-up with UML
@@ -98,7 +105,7 @@ Key rules the code follows:
 ## Tests
 
 ```bash
-python3 -m unittest discover tests        # 149 tests, about 1 second, no window needed
+python3 -m unittest discover tests        # 164 tests, about 1 second, no window needed
 python3 scripts/capture_stages.py          # refresh screenshots/
 ```
 
