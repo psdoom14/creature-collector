@@ -263,7 +263,7 @@ class OverworldScene(Scene):
                         self.engine.push_scene(PartyScene(self.engine))
                     elif choice == 2:  # BAG
                         self.is_menu_open = False
-                        bag_items = [f"{it.name} x{it.quantity}" for it in self.engine.game_state.trainer.inventory.values()]
+                        bag_items = [f"{it.name} x{it.quantity}" for it in self.engine.game_state.trainer.bag]
                         self.show_notification(", ".join(bag_items) or "Bag empty", 3.0)
                     elif choice == 3:  # SAVE
                         SaveManager.save_game(self.engine.game_state, "savegame.json")

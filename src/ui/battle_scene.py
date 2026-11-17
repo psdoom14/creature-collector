@@ -20,9 +20,9 @@ from src.ui.components import (
     STATUS_COLORS,
 )
 from src.ui.sprite_renderer import SpriteRenderer
-from src.model.battle import Battle, BattleState, BattleEvent
+from src.model.battle import Battle, BattleState
+from src.model.events import BattleEvent, EventType
 from src.model.creature import Creature
-from src.model.item import CatchBall
 
 
 class BattleScene(Scene):
@@ -65,13 +65,7 @@ class BattleScene(Scene):
         p_lead = self.battle.player_creature
         if p_lead:
             self.player_hp_bar.set_hp(p_lead.current_hp, p_lead.max_hp, immediate=True)
-            cur_xp = p_lead.level ** 3
-            nxt_xp = (p_lead.level + 1) ** 3
-            span = max(1, nxt_xp - cur_xp)
-            exp_ratio = max(0.0, min(1.0, (p_lead.xp - cur_xp) / span))
-            if p_lead.level >= 100:
-                exp_ratio = 1.0
-            self.player_exp_bar.set_ratio(exp_ratio, immediate=True)
+            self.player_exp_bar.set_ratio(p_lead.xp_progress, immediate=True)
 
         self.wild_hp_bar.set_hp(self.wild_creature.current_hp, self.wild_creature.max_hp, immediate=True)
 
@@ -85,7 +79,12 @@ class BattleScene(Scene):
             self.sub_state = "DIALOGUE"
 
             # Trigger sprite reactions based on event type
-            if self.current_event.event_type == "damage_dealt":
+            if self.current_event.event_type in (EventType.STATUS_DAMAGE, EventType.ITEM_USED):
+                self.wild_hp_bar.set_hp(self.wild_creature.current_hp, self.wild_creature.max_hp)
+                if p_lead := self.battle.player_creature:
+                    self.player_hp_bar.set_hp(p_lead.current_hp, p_lead.max_hp)
+
+            elif self.current_event.event_type == EventType.DAMAGE_DEALT:
                 target = self.current_event.data.get("target")
                 if target == self.wild_creature.name:
                     self.enemy_shake_timer = 0.3
@@ -94,23 +93,17 @@ class BattleScene(Scene):
                     self.player_shake_timer = 0.3
                     self.player_hp_bar.set_hp(self.battle.player_creature.current_hp, self.battle.player_creature.max_hp)
 
-            elif self.current_event.event_type == "fainted":
+            elif self.current_event.event_type == EventType.FAINTED:
                 fainted = self.current_event.data.get("fainted")
                 if fainted == self.wild_creature.name:
                     self.enemy_y_offset = 30.0  # drop down
 
-            elif self.current_event.event_type == "caught":
+            elif self.current_event.event_type == EventType.CAUGHT:
                 self.engine.game_state.pokedex.register_caught(self.wild_creature.species_id)
 
             # Update EXP bar if player creature gained XP
             if p_lead := self.battle.player_creature:
-                cur_xp = p_lead.level ** 3
-                nxt_xp = (p_lead.level + 1) ** 3
-                span = max(1, nxt_xp - cur_xp)
-                exp_ratio = max(0.0, min(1.0, (p_lead.xp - cur_xp) / span))
-                if p_lead.level >= 100:
-                    exp_ratio = 1.0
-                self.player_exp_bar.set_ratio(exp_ratio)
+                self.player_exp_bar.set_ratio(p_lead.xp_progress)
         else:
             self.current_event = None
             if not self.battle.is_active:
@@ -149,7 +142,7 @@ class BattleScene(Scene):
                         self.move_menu = MenuBox(pygame.Rect(4, 110, 156, 46), move_names, columns=2)
                         self.sub_state = "MOVE_SELECT"
                 elif choice == 1:  # BAG
-                    items = list(self.battle.player.inventory.values())
+                    items = list(self.battle.player.bag.items)
                     if items:
                         item_names = [f"{it.name[:12]} x{it.quantity}" for it in items[:4]]
                         self.bag_menu = MenuBox(pygame.Rect(80, 110, 156, 46), item_names, columns=1)
@@ -181,17 +174,12 @@ class BattleScene(Scene):
             elif self.bag_menu:
                 b_choice = self.bag_menu.handle_input(key)
                 if b_choice is not None:
-                    items = list(self.battle.player.inventory.values())
+                    items = list(self.battle.player.bag.items)
                     if 0 <= b_choice < len(items):
                         it = items[b_choice]
-                        if isinstance(it, CatchBall):
-                            events = self.battle.attempt_catch(it.id)
-                            self.queued_events.extend(events)
-                            self._play_next_event()
-                        else:
-                            msg = self.battle.player.use_item(it.id, self.battle.player_creature)
-                            self.queued_events.append(BattleEvent("item_used", msg))
-                            self._play_next_event()
+                        # Polymorphic: each Item subclass decides what using it in battle means.
+                        self.queued_events.extend(self.battle.use_item(it.id))
+                        self._play_next_event()
 
         elif self.sub_state == "END":
             if key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):

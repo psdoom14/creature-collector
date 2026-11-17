@@ -1,169 +1,207 @@
-"""Item model and subclass hierarchy."""
+"""Items as a class hierarchy.
+
+    Item (abstract)
+    ├── HealingItem      restores HP
+    ├── StatusCureItem   cures one status condition
+    ├── ReviveItem       revives a fainted creature
+    └── CatchBall        thrown at wild creatures to catch them
+
+Every item answers ``use(target)`` and ``use_in_battle(battle)`` in its own way,
+so callers never need to check which kind of item they hold.
+"""
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Union
+
 from src.model.creature import Creature
+from src.model.events import BattleEvent, EventType
+
+if TYPE_CHECKING:
+    from src.model.battle import Battle
 
 
 class Item(ABC):
     """Abstract base class for all consumable inventory items."""
 
+    #: The "type" string used for this class in items.json.
+    KIND: str = ""
+
     def __init__(
         self,
         item_id: str,
         name: str,
-        item_type: str,
         effect_value: Union[int, float, str],
-        description: str,
+        description: str = "",
         quantity: int = 1,
     ):
-        self.id = item_id
-        self.name = name
-        self.item_type = item_type
-        self.effect_value = effect_value
-        self.description = description
-        self.quantity = quantity
+        self._id = item_id
+        self._name = name
+        self._effect_value = effect_value
+        self._description = description
+        self._quantity = max(0, quantity)
 
+    # --- read-only data ------------------------------------------------
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def item_type(self) -> str:
+        return self.KIND
+
+    @property
+    def effect_value(self) -> Union[int, float, str]:
+        return self._effect_value
+
+    @property
+    def description(self) -> str:
+        return self._description
+
+    @property
+    def quantity(self) -> int:
+        return self._quantity
+
+    # --- stock -----------------------------------------------------------
     def has_stock(self) -> bool:
-        return self.quantity > 0
+        return self._quantity > 0
+
+    def add_stock(self, amount: int) -> None:
+        if amount < 0:
+            raise ValueError("Use consume() to remove stock")
+        self._quantity += amount
 
     def consume(self) -> bool:
+        """Use up one of this item. Returns False if none are left."""
         if self.has_stock():
-            self.quantity -= 1
+            self._quantity -= 1
             return True
         return False
 
+    # --- polymorphic behaviour ----------------------------------------
     @abstractmethod
     def can_use(self, target: Creature) -> bool:
-        """Check if this item can be applied to target creature."""
-        pass
+        """Whether using this item on ``target`` would do anything."""
 
     @abstractmethod
+    def _apply(self, target: Creature) -> str:
+        """Apply the effect (stock already checked). Returns a message."""
+
     def use(self, target: Creature) -> str:
-        """Apply item to creature and return human-readable outcome message."""
-        pass
+        """Template method: check, consume one, then apply. Returns a message."""
+        if not self.can_use(target):
+            return f"It won't have any effect on {target.name}."
+        if not self.consume():
+            return f"No {self._name} left!"
+        return self._apply(target)
+
+    def use_in_battle(self, battle: "Battle") -> List[BattleEvent]:
+        """Use this item during a battle. Default: on the player's active creature."""
+        target = battle.player_creature
+        if target is None or not self.can_use(target):
+            name = target.name if target else "anyone"
+            return [BattleEvent(EventType.INVALID_ACTION, f"It won't have any effect on {name}.")]
+        message = self.use(target)
+        return [BattleEvent(EventType.ITEM_USED, message,
+                            {"item": self._id, "target": target.name,
+                             "target_current_hp": target.current_hp, "target_max_hp": target.max_hp})]
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "id": self.id,
-            "name": self.name,
-            "type": self.item_type,
-            "effect_value": self.effect_value,
-            "description": self.description,
-            "quantity": self.quantity,
+            "id": self._id,
+            "name": self._name,
+            "type": self.KIND,
+            "effect_value": self._effect_value,
+            "description": self._description,
+            "quantity": self._quantity,
         }
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} {self.name} x{self.quantity}>"
+        return f"<{type(self).__name__} {self._name} x{self._quantity}>"
 
 
 class HealingItem(Item):
-    """Restores HP to an active, unfainted creature."""
+    """Restores a fixed amount of HP."""
+    KIND = "healing"
 
     def can_use(self, target: Creature) -> bool:
-        return (not target.is_fainted) and (target.current_hp < target.max_hp)
+        return not target.is_fainted and target.current_hp < target.max_hp
 
-    def use(self, target: Creature) -> str:
-        if not self.can_use(target):
-            return f"It will have no effect on {target.name}."
-        if not self.consume():
-            return f"No {self.name} remaining!"
-
-        healed = target.heal(int(self.effect_value))
-        return f"Restored {healed} HP to {target.name}!"
+    def _apply(self, target: Creature) -> str:
+        healed = target.heal(int(self._effect_value))
+        return f"{target.name} recovered {healed} HP!"
 
 
 class StatusCureItem(Item):
-    """Cures a specific status condition on an unfainted creature."""
+    """Cures the one status condition named by ``effect_value``."""
+    KIND = "status_cure"
 
     def can_use(self, target: Creature) -> bool:
-        if target.is_fainted or not target.status_effect:
-            return False
-        return target.status_effect == str(self.effect_value).lower()
+        return not target.is_fainted and target.status_effect == str(self._effect_value).lower()
 
-    def use(self, target: Creature) -> str:
-        if not self.can_use(target):
-            return f"It will have no effect on {target.name}."
-        if not self.consume():
-            return f"No {self.name} remaining!"
-
+    def _apply(self, target: Creature) -> str:
         cured = target.cure_status()
-        return f"{target.name}'s {cured} condition was cured!"
+        return f"{target.name}'s {cured} was cured!"
 
 
 class ReviveItem(Item):
     """Revives a fainted creature with a fraction of its max HP."""
+    KIND = "revive"
 
     def can_use(self, target: Creature) -> bool:
         return target.is_fainted
 
-    def use(self, target: Creature) -> str:
-        if not self.can_use(target):
-            return f"{target.name} is not fainted!"
-        if not self.consume():
-            return f"No {self.name} remaining!"
-
-        fraction = float(self.effect_value)
-        healed = target.revive(fraction)
+    def _apply(self, target: Creature) -> str:
+        healed = target.revive(float(self._effect_value))
         return f"{target.name} was revived with {healed} HP!"
 
 
 class CatchBall(Item):
-    """Device used to capture wild creatures in combat."""
+    """Thrown at a wild creature to try to catch it."""
+    KIND = "catch"
 
     @property
     def ball_multiplier(self) -> float:
-        return float(self.effect_value)
+        return float(self._effect_value)
 
     def can_use(self, target: Creature) -> bool:
         return not target.is_fainted
 
+    def _apply(self, target: Creature) -> str:
+        return f"Threw a {self._name} at {target.name}!"
+
     def calc_catch_chance(self, creature: Creature) -> float:
-        """
-        Calculates catch probability based on HP percent, catch rate, and ball multiplier.
-        Returns a float between 0.05 and 1.0.
-        """
+        """Catch probability (0.05-1.0) from HP left, catch rate, ball and status."""
         max_hp = creature.max_hp
         curr_hp = max(1, creature.current_hp)
-        rate = creature.catch_rate
-
-        # Classic modified formula
-        numerator = (3 * max_hp - 2 * curr_hp) * rate * self.ball_multiplier
-        denominator = 3 * max_hp * 255.0
-        chance = numerator / denominator
-
-        # Status effect bonus
-        if creature.status_effect in ("sleep", "freeze"):
-            chance *= 2.0
-        elif creature.status_effect in ("paralyze", "poison", "burn"):
-            chance *= 1.5
-
+        numerator = (3 * max_hp - 2 * curr_hp) * creature.catch_rate * self.ball_multiplier
+        chance = numerator / (3 * max_hp * 255.0)
+        if creature.status:
+            chance *= creature.status.catch_bonus
         return max(0.05, min(1.0, chance))
 
-    def use(self, target: Creature) -> str:
-        if not self.consume():
-            return f"Out of {self.name}s!"
-        return f"Threw a {self.name} at {target.name}!"
+    def use_in_battle(self, battle: "Battle") -> List[BattleEvent]:
+        """Overrides the default: a ball is thrown at the opponent, not used on your creature."""
+        return battle.throw_ball(self)
 
 
 class ItemFactory:
-    """Factory to instantiate concrete Item subclasses."""
+    """Factory that builds the right Item subclass from an items.json entry."""
 
-    @staticmethod
-    def from_json(data: Dict[str, Any], quantity: int = 1) -> Item:
-        item_type = data.get("type", "healing").lower()
-        item_id = data["id"]
-        name = data["name"]
-        val = data.get("effect_value", 0)
-        desc = data.get("description", "")
-        qty = data.get("quantity", quantity)
+    _CLASSES = {cls.KIND: cls for cls in (HealingItem, StatusCureItem, ReviveItem, CatchBall)}
 
-        if item_type == "healing":
-            return HealingItem(item_id, name, item_type, val, desc, qty)
-        elif item_type == "status_cure":
-            return StatusCureItem(item_id, name, item_type, val, desc, qty)
-        elif item_type == "revive":
-            return ReviveItem(item_id, name, item_type, val, desc, qty)
-        elif item_type == "catch":
-            return CatchBall(item_id, name, item_type, val, desc, qty)
-        else:
-            return HealingItem(item_id, name, item_type, val, desc, qty)
+    @classmethod
+    def from_json(cls, data: Dict[str, Any], quantity: int = 1) -> Item:
+        kind = data.get("type", "healing").lower()
+        item_cls = cls._CLASSES.get(kind)
+        if item_cls is None:
+            raise ValueError(f"Unknown item type '{kind}' for item '{data.get('id')}'")
+        return item_cls(
+            item_id=data["id"],
+            name=data["name"],
+            effect_value=data.get("effect_value", 0),
+            description=data.get("description", ""),
+            quantity=data.get("quantity", quantity),
+        )

@@ -1,14 +1,16 @@
-"""Game state representation combining Trainer, Party, Inventory, Pokédex, and Progression."""
-from typing import Dict, Any, Optional
-from src.model.trainer import Trainer, Party
-from src.model.pokedex import Pokedex
+"""GameState: everything that goes into a save file."""
+from typing import Any, Dict, Optional
+
+from src.model.bag import Bag
 from src.model.creature import CreatureFactory
-from src.model.move import MoveFactory
 from src.model.item import ItemFactory
+from src.model.move import MoveFactory
+from src.model.pokedex import Pokedex
+from src.model.trainer import Party, PCBox, Trainer
 
 
 class GameState:
-    """Represents the complete snapshot of a player's save game."""
+    """A snapshot of the player's progress: trainer, Pokédex, location, time and badges."""
 
     def __init__(
         self,
@@ -25,7 +27,6 @@ class GameState:
         self.badges = badges
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert game state to a JSON-serializable dictionary."""
         return {
             "trainer": self.trainer.to_dict(),
             "pokedex": self.pokedex.to_dict(),
@@ -34,51 +35,40 @@ class GameState:
             "badges": self.badges,
         }
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any], data_loader: Any) -> "GameState":
-        """Reconstruct full GameState object from serialized dictionary."""
-        trainer_data = data.get("trainer", {})
-        trainer_name = trainer_data.get("name", "Red")
-        money = trainer_data.get("money", 1000)
-
-        # Reconstruct party creatures
-        party_creatures = []
-        for c_dict in trainer_data.get("party", []):
-            species_data = data_loader.get_species_data(c_dict["species_id"])
-            if not species_data:
-                continue
-
-            moves = [MoveFactory.from_json(m) for m in c_dict.get("moves", [])]
-            creature = CreatureFactory.create(
-                species_data=species_data,
-                level=c_dict.get("level", 5),
-                xp=c_dict.get("xp"),
-                moves=moves,
-                current_hp=c_dict.get("current_hp"),
-                status_effect=c_dict.get("status_effect"),
-            )
-            party_creatures.append(creature)
-
-        party = Party(party_creatures)
-
-        # Reconstruct inventory items
-        inventory = {}
-        for item_dict in trainer_data.get("inventory", []):
-            item = ItemFactory.from_json(item_dict, quantity=item_dict.get("quantity", 1))
-            inventory[item.id] = item
-
-        trainer = Trainer(
-            name=trainer_name,
-            party=party,
-            inventory=inventory,
-            money=money,
+    @staticmethod
+    def _creature_from_dict(c_dict: Dict[str, Any], data_loader: Any):
+        species_data = data_loader.get_species_data(c_dict["species_id"])
+        if not species_data:
+            return None
+        return CreatureFactory.create(
+            species_data=species_data,
+            level=c_dict.get("level", 5),
+            xp=c_dict.get("xp"),
+            moves=[MoveFactory.from_json(m) for m in c_dict.get("moves", [])],
+            current_hp=c_dict.get("current_hp"),
+            status_effect=c_dict.get("status_effect"),
         )
 
-        pokedex = Pokedex.from_dict(data.get("pokedex", {}))
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], data_loader: Any) -> "GameState":
+        """Rebuild a GameState from a save dictionary."""
+        t = data.get("trainer", {})
 
+        def load_all(dicts):
+            return [c for c in (cls._creature_from_dict(d, data_loader) for d in dicts) if c]
+
+        bag = Bag([ItemFactory.from_json(d, quantity=d.get("quantity", 1))
+                   for d in t.get("inventory", [])])
+        trainer = Trainer(
+            name=t.get("name", "Player"),
+            party=Party(load_all(t.get("party", []))),
+            bag=bag,
+            money=t.get("money", 1000),
+            pc=PCBox(load_all(t.get("pc", []))),
+        )
         return cls(
             trainer=trainer,
-            pokedex=pokedex,
+            pokedex=Pokedex.from_dict(data.get("pokedex", {})),
             current_route=data.get("current_route", "Route 1"),
             play_time=data.get("play_time", 0.0),
             badges=data.get("badges", 0),

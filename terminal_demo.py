@@ -112,7 +112,7 @@ def play_battle(battle: Battle, auto_input: Optional[list] = None) -> bool:
                 print("Invalid input.")
 
         elif act == "2":  # BAG
-            items = list(battle.player.inventory.values())
+            items = list(battle.player.bag.items)
             if not items:
                 print("  Bag is empty!")
                 continue
@@ -127,14 +127,8 @@ def play_battle(battle: Battle, auto_input: Optional[list] = None) -> bool:
                 b_idx = int(b_sel) - 1
                 if 0 <= b_idx < len(items):
                     chosen_item = items[b_idx]
-                    if chosen_item.item_type == "catch":
-                        events = battle.attempt_catch(chosen_item.id)
-                        for e in events:
-                            print(f"  > {e.message}")
-                    else:
-                        target = battle.player_creature
-                        res = battle.player.use_item(chosen_item.id, target)
-                        print(f"  > {res}")
+                    for e in battle.use_item(chosen_item.id):
+                        print(f"  > {e.message}")
             except ValueError:
                 print("Invalid choice.")
 
@@ -165,11 +159,9 @@ def play_battle(battle: Battle, auto_input: Optional[list] = None) -> bool:
             loader = DataLoader()
             new_data = loader.get_species_data(evo_id)
             if new_data:
-                evolved = c.evolve(new_data)
-                # Replace in party
-                idx = battle.player.party.creatures.index(c)
-                battle.player.party.creatures[idx] = evolved
-                print(f"🎉 Congratulations! Your {c.name} evolved into {evolved.name}! 🎉")
+                old_name = c.name
+                c.evolve(new_data)  # evolves in place, so the party needs no update
+                print(f"🎉 Congratulations! Your {old_name} evolved into {c.name}! 🎉")
 
     return battle.state == BattleState.WON or battle.state == BattleState.CAUGHT
 
@@ -254,7 +246,7 @@ def main():
             trainer.party.heal_all()
             print("Party completely healed!")
         elif next_act == "3":
-            c_cnt, tot, pct = pokedex.get_completion(23)
+            c_cnt, tot, pct = pokedex.get_completion(len(loader.get_all_species()))
             print(f"\n📖 POKÉDEX: {c_cnt}/{tot} species caught ({pct}%)")
             for sp in loader.get_all_species():
                 st = "✓ CAUGHT" if pokedex.is_caught(sp["id"]) else ("? SEEN" if pokedex.is_seen(sp["id"]) else "  UNKNOWN")

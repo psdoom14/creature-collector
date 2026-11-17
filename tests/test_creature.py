@@ -1,7 +1,7 @@
 """Tests for Creature model, leveling, and evolution."""
 import unittest
 from src.data_loader import DataLoader
-from src.model.creature import FireCreature
+from src.model.creature import Creature
 
 
 class TestCreature(unittest.TestCase):
@@ -11,7 +11,8 @@ class TestCreature(unittest.TestCase):
 
     def test_creature_initialization(self):
         charmander = self.loader.get_creature(4, level=5)
-        self.assertIsInstance(charmander, FireCreature)
+        self.assertIsInstance(charmander, Creature)
+        self.assertEqual(charmander.types, ("Fire",))
         self.assertEqual(charmander.name, "Charmander")
         self.assertEqual(charmander.level, 5)
         self.assertGreater(charmander.max_hp, 0)
@@ -62,10 +63,12 @@ class TestCreature(unittest.TestCase):
 
         # Test evolution into Charmeleon (species 5)
         charmeleon_data = self.loader.get_species_data(5)
+        attack_before = charmander.attack
         evolved = charmander.evolve(charmeleon_data)
+        self.assertIs(evolved, charmander, "evolution changes the creature in place")
         self.assertEqual(evolved.name, "Charmeleon")
         self.assertEqual(evolved.level, 16)
-        self.assertGreater(evolved.attack, charmander.attack)
+        self.assertGreater(evolved.attack, attack_before)
 
 
 if __name__ == "__main__":
