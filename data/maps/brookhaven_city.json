@@ -16,16 +16,20 @@
     "d": "gym_door",
     "f": "flowers",
     "g": "gym_wall",
-    "w": "house_window"
+    "w": "house_window",
+    "P": "shop_roof",
+    "m": "shop_sign",
+    "q": "shop_wall",
+    "o": "shop_door"
   },
   "rows": [
     "TTTTTTTTTTTTTTTTTTTTTT",
     "T....................T",
     "T.............GGGGGG.T",
-    "T..CCCCC......GGGGGG.T",
-    "T..CCSCC......GGGGGG.T",
-    "T..HHcHH......ggdggg.T",
-    "T....,..........,....T",
+    "T..CCCCC.PPPP.GGGGGG.T",
+    "T..CCSCC.PPmP.GGGGGG.T",
+    "T..HHcHH.qoqq.ggdggg.T",
+    "T....,....,.....,....T",
     "T....,,,,,,,,,,,,....T",
     "T.ff......,,......ff.T",
     "T.ff......,,......ff.T",
@@ -67,6 +71,30 @@
       "to": "brookhaven_gym",
       "tx": 5,
       "ty": 9,
+      "facing": "up"
+    },
+    {
+      "x": 10,
+      "y": 5,
+      "to": "brookhaven_shop",
+      "tx": 5,
+      "ty": 6,
+      "facing": "up"
+    },
+    {
+      "x": 4,
+      "y": 12,
+      "to": "brookhaven_house_1",
+      "tx": 5,
+      "ty": 6,
+      "facing": "up"
+    },
+    {
+      "x": 17,
+      "y": 12,
+      "to": "brookhaven_house_2",
+      "tx": 5,
+      "ty": 6,
       "facing": "up"
     }
   ],
@@ -112,6 +140,35 @@
         "They say the gym leader here is really tough.",
         "Train hard before you challenge them!"
       ]
+    },
+    {
+      "kind": "sign",
+      "x": 12,
+      "y": 6,
+      "lines": [
+        "SUPPLY SHOP",
+        "Catch balls, medicine and more!"
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 2,
+      "y": 6,
+      "name": "ELLA",
+      "facing": "right",
+      "palette": "pink",
+      "lines": [
+        "ELLA: Did you know the old man in the house by the flowers gives out Great Balls?",
+        "ELLA: He's very generous to young trainers."
+      ]
+    },
+    {
+      "kind": "item_ball",
+      "id": "brookhaven_awakening",
+      "x": 19,
+      "y": 13,
+      "item": "awakening",
+      "quantity": 1
     }
   ]
 }

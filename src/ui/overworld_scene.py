@@ -297,11 +297,21 @@ class OverworldScene(Scene):
         elif result.effect == "offer_starter":
             self._offer_starter(result.data["species_id"])
             return
+        elif result.effect == "open_shop":
+            stock = result.data["stock"]
+            self._open_dialogue(lines, then=lambda: self._open_shop(stock))
+            return
         elif result.effect == "start_battle":
             trainer = result.data["trainer"]
             self._open_dialogue(lines, then=lambda: self._start_trainer_battle(trainer))
             return
         self._open_dialogue(lines)
+
+    def _open_shop(self, stock) -> None:
+        from src.model.shop import Shop
+        from src.ui.shop_scene import ShopScene
+        shop = Shop(stock, self.engine.data_loader.get_item)
+        self.engine.push_scene(ShopScene(self.engine, shop))
 
     # ------------------------------------------------------------------
     # Trainers

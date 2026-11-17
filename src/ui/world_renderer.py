@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 import pygame
 
 from src.model.direction import Direction
-from src.model.entities import Character, Interactable, Sign, StarterBall
+from src.model.entities import Character, Interactable, ItemBall, Sign, StarterBall
 from src.model.world import WorldMap
 
 TILE = 16
@@ -181,6 +181,32 @@ class TileArt:
         pygame.draw.rect(s, (96, 120, 144), (2, 2, 12, 14), 1)
 
     @classmethod
+    def _paint_shop_roof(cls, s):
+        cls._roof(s, (64, 112, 200))
+
+    @classmethod
+    def _paint_shop_sign(cls, s):
+        cls._paint_shop_roof(s)
+        pygame.draw.rect(s, (248, 248, 248), (1, 3, 14, 10), border_radius=2)
+        pygame.draw.rect(s, (64, 112, 200), (4, 5, 8, 6), 1)
+        pygame.draw.line(s, (64, 112, 200), (4, 7), (11, 7))
+
+    @classmethod
+    def _paint_shop_wall(cls, s):
+        cls._wall(s, (240, 240, 232))
+        pygame.draw.rect(s, (64, 112, 200), (0, 0, 16, 3))
+        pygame.draw.rect(s, (160, 208, 240), (2, 5, 12, 6))
+        pygame.draw.rect(s, (72, 96, 128), (2, 5, 12, 6), 1)
+
+    @classmethod
+    def _paint_shop_door(cls, s):
+        cls._wall(s, (240, 240, 232))
+        pygame.draw.rect(s, (64, 112, 200), (0, 0, 16, 3))
+        pygame.draw.rect(s, (160, 216, 248), (2, 4, 12, 12))
+        pygame.draw.line(s, (96, 120, 144), (8, 4), (8, 15))
+        pygame.draw.rect(s, (96, 120, 144), (2, 4, 12, 12), 1)
+
+    @classmethod
     def _paint_gym_roof(cls, s):
         cls._roof(s, (72, 144, 136))
 
@@ -253,6 +279,33 @@ class TileArt:
             for i, col in enumerate(cols):
                 pygame.draw.rect(s, col, (2 + i * 4, y, 3, 5))
         pygame.draw.line(s, (88, 56, 32), (0, 8), (15, 8))
+
+    @classmethod
+    def _paint_bed(cls, s):
+        cls._paint_floor(s)
+        pygame.draw.rect(s, (88, 64, 48), (1, 0, 14, 16), border_radius=2)
+        pygame.draw.rect(s, (224, 88, 80), (2, 5, 12, 10))
+        pygame.draw.rect(s, (248, 248, 248), (3, 1, 10, 4), border_radius=1)
+        pygame.draw.line(s, (184, 64, 56), (2, 9), (13, 9))
+
+    @classmethod
+    def _paint_tv(cls, s):
+        cls._paint_floor(s)
+        pygame.draw.rect(s, (72, 72, 80), (1, 2, 14, 11), border_radius=1)
+        pygame.draw.rect(s, (120, 184, 216), (3, 4, 10, 7))
+        pygame.draw.line(s, (200, 232, 248), (4, 5), (8, 5))
+        pygame.draw.rect(s, (56, 56, 64), (5, 13, 6, 2))
+
+    @classmethod
+    def _paint_shelf(cls, s):
+        s.fill((168, 120, 72))
+        for y in (5, 10, 15):
+            pygame.draw.line(s, (112, 72, 40), (0, y), (15, y))
+        colours = ((224, 64, 56), (64, 112, 200), (248, 208, 64), (88, 176, 96))
+        for i, x in enumerate(range(1, 15, 4)):
+            pygame.draw.rect(s, colours[i % 4], (x, 1, 3, 4))
+            pygame.draw.rect(s, colours[(i + 2) % 4], (x, 6, 3, 4))
+            pygame.draw.rect(s, colours[(i + 1) % 4], (x, 11, 3, 4))
 
     @classmethod
     def _paint_pc(cls, s):
@@ -386,6 +439,8 @@ class MapRenderer:
             surface.blit(self._sign, (sx, sy))
         elif isinstance(entity, StarterBall):
             surface.blit(self._ball, (sx, sy - 3))
+        elif isinstance(entity, ItemBall):
+            surface.blit(self._ball, (sx, sy))
 
     def draw_grass_overlay(self, surface: pygame.Surface, px: float, py: float, cam: Tuple[int, int]) -> None:
         """Tall-grass blades over the lower half of whoever stands in it."""

@@ -1,0 +1,88 @@
+{
+  "id": "brookhaven_shop",
+  "name": "Supply Shop",
+  "legend": {
+    "#": "wall",
+    "_": "floor",
+    "M": "mat",
+    "B": "bookshelf",
+    "p": "plant",
+    "t": "table",
+    "b": "bed",
+    "V": "tv",
+    "S": "shelf",
+    "K": "counter",
+    "Q": "pc"
+  },
+  "rows": [
+    "###########",
+    "#SSS___SSS#",
+    "#_________#",
+    "#KKK______#",
+    "#_________#",
+    "#_____SS__#",
+    "#p_______p#",
+    "####MMM####"
+  ],
+  "warps": [
+    {
+      "x": 4,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 10,
+      "ty": 6,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 10,
+      "ty": 6,
+      "facing": "down"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 10,
+      "ty": 6,
+      "facing": "down"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "shopkeeper",
+      "x": 2,
+      "y": 2,
+      "name": "CLERK",
+      "facing": "down",
+      "palette": "blue",
+      "lines": [
+        "CLERK: Welcome to the SUPPLY SHOP!"
+      ],
+      "stock": [
+        "poke_ball",
+        "great_ball",
+        "potion",
+        "super_potion",
+        "antidote",
+        "paralyze_heal",
+        "awakening",
+        "revive"
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 7,
+      "y": 4,
+      "name": "PIP",
+      "facing": "up",
+      "palette": "green",
+      "lines": [
+        "PIP: I always carry a few Potions. Battles can turn fast!",
+        "PIP: You can sell things you don't need here, too. Half price, though."
+      ]
+    }
+  ]
+}

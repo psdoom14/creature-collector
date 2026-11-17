@@ -158,6 +158,81 @@
         "Or rest at the healing center in Brookhaven.",
         "Oh, and a rare electric creature hides in this grass. It's great against birds!"
       ]
+    },
+    {
+      "kind": "trainer",
+      "id": "route1_ana",
+      "x": 1,
+      "y": 13,
+      "name": "ANA",
+      "title": "SCOUT",
+      "facing": "right",
+      "palette": "green",
+      "sight": 2,
+      "party": [
+        [
+          19,
+          4
+        ],
+        [
+          129,
+          5
+        ]
+      ],
+      "prize": 90,
+      "lines": [
+        "ANA: Stop right there! Scouts never back down from a challenge!"
+      ],
+      "defeat_lines": [
+        "ANA: Aww... I need more badges. I mean practice."
+      ],
+      "after_lines": [
+        "ANA: My Magikarp only knows Splash. I'm sure it'll be amazing one day."
+      ]
+    },
+    {
+      "kind": "trainer",
+      "id": "route1_bo",
+      "x": 13,
+      "y": 17,
+      "name": "BO",
+      "title": "HIKER",
+      "facing": "left",
+      "palette": "brown",
+      "sight": 2,
+      "party": [
+        [
+          74,
+          5
+        ]
+      ],
+      "prize": 120,
+      "lines": [
+        "BO: Hah! A rock-solid trainer like me can't let you pass without a battle!"
+      ],
+      "defeat_lines": [
+        "BO: Crumbled like gravel! You're tough."
+      ],
+      "after_lines": [
+        "BO: Rock creatures shrug off fire and flying moves.",
+        "BO: Water and grass moves are another story..."
+      ]
+    },
+    {
+      "kind": "item_ball",
+      "id": "route1_poke_balls",
+      "x": 14,
+      "y": 1,
+      "item": "poke_ball",
+      "quantity": 2
+    },
+    {
+      "kind": "item_ball",
+      "id": "route1_potion",
+      "x": 1,
+      "y": 22,
+      "item": "potion",
+      "quantity": 1
     }
   ]
 }

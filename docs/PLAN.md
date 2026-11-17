@@ -187,3 +187,9 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - `HostSession` runs the battle and sends events; `GuestSession` sends choices and keeps a `GuestView` mirror. A test plays whole battles and checks both games end with identical HP for every creature; another runs a real TCP connection on localhost.
 - UI: pause menu → LINK (`LinkMenuScene`: host shows its address, join types it), `LinkBattleScene` reuses `BattleScene`. Disconnects end the battle with a message.
 - Test fix: `GameEngine` now clears image caches when created, and no test shuts pygame down for the rest of the run.
+
+**A fuller world (2026-11-17).** 215 tests pass (+15 in `tests/test_world_additions.py`). 10 maps, 152 classes.
+- Every house door now opens: your house in Fernvale (MOM, a `Healer` with her own lines, heals the team and becomes the place you wake up after a blackout once you've rested there) and two houses in Brookhaven with townsfolk and gifts.
+- Supply Shop in Brookhaven (new blue-roofed building). Model: `Shop` (`src/model/shop.py`) buys at the item's price and sells back at half; it is given an `item_source` function instead of reading the data files (dependency inversion). Every item in `items.json` now has a `price`. UI: `ShopScene` (BUY / SELL, quantity with up/down for 1 and left/right for 10).
+- New `Interactable` subclasses, added without changing `Explorer`: `ItemBall` (picked up once; a flag keeps it gone after saving), `GiftGiver` (gives items once), `Shopkeeper` (opens the shop). `Interactable.is_gone(flags)` lets a picked-up ball stop blocking the path.
+- More people: two more Route 1 trainers (SCOUT ANA, HIKER BO), a fisherman in Fernvale, a hint-giver in Brookhaven, and four item balls.

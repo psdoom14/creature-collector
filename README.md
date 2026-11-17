@@ -4,7 +4,7 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![Pygame](https://img.shields.io/badge/Pygame-2.5%2B-green)
-![Tests](https://img.shields.io/badge/tests-200%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-215%20passing-brightgreen)
 
 **📘 The OOP write-up — the four pillars mapped to exact lines, design patterns and UML diagrams — is in [docs/OOP.md](docs/OOP.md).**
 
@@ -15,11 +15,12 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
 1. **Title screen:** start a NEW GAME or CONTINUE a save.
 2. **Professor's intro:** PROF. CEDAR welcomes you and you type your name.
 3. **Choose a starter** from three balls in the lab (Fire, Water or Grass). Your rival JUNO takes the one that's strong against yours.
-4. **Explore four connected areas:**
-   - Fernvale Town
-   - Route 1, with tall grass and wild creatures
-   - Brookhaven City, with a Healing Center you can walk into
+4. **Explore 10 connected maps:**
+   - Fernvale Town, with your house (MOM heals your team) and the Professor's Lab
+   - Route 1, with tall grass, wild creatures, three trainers and items lying around
+   - Brookhaven City, with a Healing Center, a Supply Shop (buy and sell items) and two houses to visit
    - Brookhaven Gym
+   - People to talk to in every town, and some of them give you gifts
 5. **Battle:**
    - Wild creatures: fight, catch, run or switch.
    - Trainers who spot you in their line of sight.
@@ -87,11 +88,11 @@ creature-collector/
 │   │   ├── creature.py move.py move_effect.py status.py item.py bag.py
 │   │   ├── battle.py battle_ai.py events.py type_chart.py
 │   │   ├── trainer.py pokedex.py badges.py story.py game_state.py
-│   │   └── world.py entities.py direction.py
+│   │   └── world.py entities.py shop.py direction.py
 │   ├── ui/                 screens (pygame): one Scene subclass per screen
 │   ├── data_loader.py      builds model objects from data/ (factories)
 │   └── save_manager.py     JSON save files
-├── tests/                  200 tests, run headless
+├── tests/                  215 tests, run headless
 ├── scripts/capture_stages.py   regenerates the screenshots above
 └── docs/
     ├── OOP.md              the OOP design write-up with UML
@@ -108,7 +109,7 @@ Key rules the code follows:
 ## Tests
 
 ```bash
-python3 -m unittest discover tests        # 200 tests, about 3 seconds, no window needed
+python3 -m unittest discover tests        # 215 tests, about 3 seconds, no window needed
 python3 scripts/capture_stages.py          # refresh screenshots/
 ```
 

@@ -1,0 +1,86 @@
+{
+  "id": "brookhaven_house_2",
+  "name": "Brookhaven House",
+  "legend": {
+    "#": "wall",
+    "_": "floor",
+    "M": "mat",
+    "B": "bookshelf",
+    "p": "plant",
+    "t": "table",
+    "b": "bed",
+    "V": "tv",
+    "S": "shelf",
+    "K": "counter",
+    "Q": "pc"
+  },
+  "rows": [
+    "###########",
+    "#b__V___BB#",
+    "#_________#",
+    "#______tt_#",
+    "#______tt_#",
+    "#p________#",
+    "#_________#",
+    "####MMM####"
+  ],
+  "warps": [
+    {
+      "x": 4,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 17,
+      "ty": 13,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 17,
+      "ty": 13,
+      "facing": "down"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 17,
+      "ty": 13,
+      "facing": "down"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "npc",
+      "x": 3,
+      "y": 2,
+      "name": "KAI",
+      "facing": "down",
+      "palette": "blue",
+      "lines": [
+        "KAI: When I grow up I'm going to beat WREN!",
+        "KAI: Bird creatures hate electric moves. Everybody knows that."
+      ]
+    },
+    {
+      "kind": "gift_npc",
+      "id": "maya_potions",
+      "x": 6,
+      "y": 4,
+      "name": "MAYA",
+      "facing": "right",
+      "palette": "purple",
+      "lines": [
+        "MAYA: Are you taking on the gym? My brother won't stop talking about it.",
+        "MAYA: Take these. Heal up between battles!"
+      ],
+      "gift": {
+        "super_potion": 2
+      },
+      "after_lines": [
+        "MAYA: The SUPPLY SHOP next to the gym sells potions too."
+      ]
+    }
+  ]
+}

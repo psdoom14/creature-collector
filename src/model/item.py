@@ -33,12 +33,14 @@ class Item(ABC):
         effect_value: Union[int, float, str],
         description: str = "",
         quantity: int = 1,
+        price: int = 0,
     ):
         self._id = item_id
         self._name = name
         self._effect_value = effect_value
         self._description = description
         self._quantity = max(0, quantity)
+        self._price = max(0, int(price))
 
     # --- read-only data ------------------------------------------------
     @property
@@ -64,6 +66,16 @@ class Item(ABC):
     @property
     def quantity(self) -> int:
         return self._quantity
+
+    @property
+    def price(self) -> int:
+        """What one costs in a shop (0 means shops don't sell it)."""
+        return self._price
+
+    @property
+    def sell_price(self) -> int:
+        """What a shop pays for one: half the price."""
+        return self._price // 2
 
     # --- stock -----------------------------------------------------------
     def has_stock(self) -> bool:
@@ -122,6 +134,7 @@ class Item(ABC):
             "effect_value": self._effect_value,
             "description": self._description,
             "quantity": self._quantity,
+            "price": self._price,
         }
 
     def __repr__(self) -> str:
@@ -214,4 +227,5 @@ class ItemFactory:
             effect_value=data.get("effect_value", 0),
             description=data.get("description", ""),
             quantity=data.get("quantity", quantity),
+            price=data.get("price", 0),
         )

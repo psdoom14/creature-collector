@@ -64,6 +64,14 @@
       "tx": 5,
       "ty": 7,
       "facing": "up"
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "to": "player_home",
+      "tx": 5,
+      "ty": 6,
+      "facing": "up"
     }
   ],
   "entities": [
@@ -107,6 +115,26 @@
         "North of town is Route 1.",
         "Follow it and you'll reach Brookhaven City."
       ]
+    },
+    {
+      "kind": "npc",
+      "x": 5,
+      "y": 12,
+      "name": "BEN",
+      "facing": "left",
+      "palette": "blue",
+      "lines": [
+        "BEN: Not a single bite all morning.",
+        "BEN: They say a Magikarp can grow into something terrifying. Hard to believe!"
+      ]
+    },
+    {
+      "kind": "item_ball",
+      "id": "fernvale_potion",
+      "x": 17,
+      "y": 9,
+      "item": "potion",
+      "quantity": 1
     }
   ]
 }

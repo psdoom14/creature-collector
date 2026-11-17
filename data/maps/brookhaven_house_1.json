@@ -1,0 +1,87 @@
+{
+  "id": "brookhaven_house_1",
+  "name": "Brookhaven House",
+  "legend": {
+    "#": "wall",
+    "_": "floor",
+    "M": "mat",
+    "B": "bookshelf",
+    "p": "plant",
+    "t": "table",
+    "b": "bed",
+    "V": "tv",
+    "S": "shelf",
+    "K": "counter",
+    "Q": "pc"
+  },
+  "rows": [
+    "###########",
+    "#BBB___Q_p#",
+    "#_________#",
+    "#___tt____#",
+    "#___tt____#",
+    "#b_______p#",
+    "#_________#",
+    "####MMM####"
+  ],
+  "warps": [
+    {
+      "x": 4,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 4,
+      "ty": 13,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 4,
+      "ty": 13,
+      "facing": "down"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 4,
+      "ty": 13,
+      "facing": "down"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "gift_npc",
+      "id": "grandpa_fen",
+      "x": 3,
+      "y": 3,
+      "name": "FEN",
+      "facing": "right",
+      "palette": "brown",
+      "lines": [
+        "FEN: A young trainer! I used to catch creatures by the riverside, you know.",
+        "FEN: Here, take these. They catch better than ordinary balls."
+      ],
+      "gift": {
+        "great_ball": 3
+      },
+      "after_lines": [
+        "FEN: Great Balls work best when the creature is worn out.",
+        "FEN: Lower its HP first, then throw!"
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 7,
+      "y": 4,
+      "name": "ROSA",
+      "facing": "left",
+      "palette": "pink",
+      "lines": [
+        "ROSA: Water beats fire, fire beats grass, and grass beats water.",
+        "ROSA: Remember that and you'll do fine against anyone."
+      ]
+    }
+  ]
+}

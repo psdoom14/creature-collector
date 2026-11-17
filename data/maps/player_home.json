@@ -1,0 +1,71 @@
+{
+  "id": "player_home",
+  "name": "Your House",
+  "legend": {
+    "#": "wall",
+    "_": "floor",
+    "M": "mat",
+    "B": "bookshelf",
+    "p": "plant",
+    "t": "table",
+    "b": "bed",
+    "V": "tv",
+    "S": "shelf",
+    "K": "counter",
+    "Q": "pc"
+  },
+  "rows": [
+    "###########",
+    "#BB__V__p_#",
+    "#________b#",
+    "#__tt_____#",
+    "#__tt_____#",
+    "#p________#",
+    "#_________#",
+    "####MMM####"
+  ],
+  "warps": [
+    {
+      "x": 4,
+      "y": 7,
+      "to": "fernvale_town",
+      "tx": 4,
+      "ty": 5,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "to": "fernvale_town",
+      "tx": 4,
+      "ty": 5,
+      "facing": "down"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "to": "fernvale_town",
+      "tx": 4,
+      "ty": 5,
+      "facing": "down"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "healer",
+      "x": 6,
+      "y": 3,
+      "name": "MOM",
+      "facing": "down",
+      "palette": "orange",
+      "lines": [
+        "MOM: Oh, welcome home, sweetie!",
+        "MOM: You look tired. Take a break here."
+      ],
+      "farewell": [
+        "MOM: There! You and your team look full of energy.",
+        "MOM: Off you go. Don't forget to call!"
+      ]
+    }
+  ]
+}

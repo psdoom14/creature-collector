@@ -2,7 +2,7 @@
 
 > Last updated: 2026-11-17, after Phase 7 of [docs/PLAN.md](docs/PLAN.md).
 > Repo: `github.com/psdoom14/creature-collector` (private). Stack: Python 3.11+ (developed on 3.14), Pygame 2.6, JSON data.
-> Tests: **200 passing** (`python3 -m unittest discover tests`, about 1 s, headless).
+> Tests: **215 passing** (`python3 -m unittest discover tests`, about 1 s, headless).
 
 ## 1. What this is
 
@@ -11,7 +11,7 @@ A college OOP project: a small GBA-style creature-collecting demo. The playable 
 2. Professor intro and name entry.
 3. Choose a starter in the lab; the rival takes the counter type.
 4. Route 1: wild creatures, a trainer, and the rival battle.
-5. Brookhaven City: the Healing Center.
+5. Brookhaven City: the Healing Center, the Supply Shop and two houses.
 6. Brookhaven Gym: leader WREN, who gives the GALE BADGE.
 
 The rest of the documentation:
@@ -61,7 +61,6 @@ For demos, the **debug menu** (F1 or ` while walking; `src/ui/debug_scene.py`, r
 - Trainers walking up to the player before battle (they currently battle from where they stand).
 - Sound effects and music.
 - A second gym and a third town (the plan's stretch goal).
-- Enterable houses in Fernvale Town and Brookhaven City (their doors are walls for now).
 - Replacing the class check in `MapRenderer.draw_entity` with a `sprite_kind` property or a Visitor.
 
 ## 6. Environment notes

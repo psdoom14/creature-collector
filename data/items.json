@@ -4,76 +4,87 @@
     "name": "Poké Ball",
     "type": "catch",
     "effect_value": 1.0,
-    "description": "A device for catching wild creatures. Moderate success rate."
+    "description": "A device for catching wild creatures. Moderate success rate.",
+    "price": 200
   },
   {
     "id": "great_ball",
     "name": "Great Ball",
     "type": "catch",
     "effect_value": 1.5,
-    "description": "A high-performance Poké Ball. Higher success rate."
+    "description": "A high-performance Poké Ball. Higher success rate.",
+    "price": 600
   },
   {
     "id": "ultra_ball",
     "name": "Ultra Ball",
     "type": "catch",
     "effect_value": 2.0,
-    "description": "An ultra-high-performance Poké Ball. Superior success rate."
+    "description": "An ultra-high-performance Poké Ball. Superior success rate.",
+    "price": 1200
   },
   {
     "id": "potion",
     "name": "Potion",
     "type": "healing",
     "effect_value": 20,
-    "description": "Restores 20 HP of a single creature."
+    "description": "Restores 20 HP of a single creature.",
+    "price": 300
   },
   {
     "id": "super_potion",
     "name": "Super Potion",
     "type": "healing",
     "effect_value": 50,
-    "description": "Restores 50 HP of a single creature."
+    "description": "Restores 50 HP of a single creature.",
+    "price": 700
   },
   {
     "id": "hyper_potion",
     "name": "Hyper Potion",
     "type": "healing",
     "effect_value": 200,
-    "description": "Restores 200 HP of a single creature."
+    "description": "Restores 200 HP of a single creature.",
+    "price": 1200
   },
   {
     "id": "antidote",
     "name": "Antidote",
     "type": "status_cure",
     "effect_value": "poison",
-    "description": "Heals a poisoned creature."
+    "description": "Heals a poisoned creature.",
+    "price": 100
   },
   {
     "id": "paralyze_heal",
     "name": "Paralyze Heal",
     "type": "status_cure",
     "effect_value": "paralyze",
-    "description": "Heals a paralyzed creature."
+    "description": "Heals a paralyzed creature.",
+    "price": 200
   },
   {
     "id": "awakening",
     "name": "Awakening",
     "type": "status_cure",
     "effect_value": "sleep",
-    "description": "Awakens a sleeping creature."
+    "description": "Awakens a sleeping creature.",
+    "price": 250
   },
   {
     "id": "revive",
     "name": "Revive",
     "type": "revive",
     "effect_value": 0.5,
-    "description": "Revives a fainted creature with half its maximum HP."
+    "description": "Revives a fainted creature with half its maximum HP.",
+    "price": 1500
   },
   {
     "id": "max_revive",
     "name": "Max Revive",
     "type": "revive",
     "effect_value": 1.0,
-    "description": "Revives a fainted creature with all its maximum HP."
+    "description": "Revives a fainted creature with all its maximum HP.",
+    "price": 4000
   }
 ]

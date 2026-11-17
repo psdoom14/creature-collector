@@ -3,10 +3,13 @@
     Interactable (abstract)          has a position, blocks movement, interact()
     ├── Sign                         shows its text
     ├── StarterBall                  offers its creature until it has been taken
+    ├── ItemBall                     an item lying on the ground: picked up once, then gone
     └── Character (abstract)         has a name and a facing direction
         └── NPC                      turns to face you and talks
             ├── Healer               talks, then heals your whole party
             ├── Professor            different lines before/after you have a starter, gives a gift once
+            ├── GiftGiver            gives you items once, then says something else
+            ├── Shopkeeper           opens the shop screen (buy and sell)
             └── TrainerNPC           spots you in its line of sight and battles (TrainerBattle)
                 ├── RivalTrainer     team built around the starter the rival picked
                 └── GymLeader        battles with a smart AI and awards a badge (GymBattle)
@@ -69,9 +72,13 @@ class Interactable(ABC):
     def blocks_movement(self) -> bool:
         return True
 
+    def is_gone(self, flags) -> bool:
+        """Whether this has left the map for good (a picked-up item ball), judged from story flags."""
+        return False
+
     def is_present(self, state: "GameState") -> bool:
-        """Whether this is drawn on the map (a taken starter ball isn't)."""
-        return True
+        """Whether this is drawn on the map and blocks the way."""
+        return not self.is_gone(state.flags)
 
     def notices(self, state: "GameState", world_map: "WorldMap", player: "Location") -> bool:
         """Whether this reacts to the player just by being seen (trainers do)."""
@@ -131,8 +138,8 @@ class StarterBall(Interactable):
     def _taken_flag(self) -> str:
         return f"starter_taken_{self._species_id}"
 
-    def is_present(self, state: "GameState") -> bool:
-        return not state.flags.has(self._taken_flag())
+    def is_gone(self, flags) -> bool:
+        return flags.has(self._taken_flag())
 
     def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
         if not self.is_present(state):
@@ -144,6 +151,39 @@ class StarterBall(Interactable):
     @classmethod
     def _from_data(cls, data: Dict[str, Any]) -> "StarterBall":
         return cls(data["x"], data["y"], int(data["species"]))
+
+
+class ItemBall(Interactable):
+    """An item lying on the ground. Picking it up sets a flag, so it stays gone after saving."""
+    KIND = "item_ball"
+
+    def __init__(self, x: int, y: int, ball_id: str, item_id: str, quantity: int = 1):
+        super().__init__(x, y)
+        self._ball_id = ball_id
+        self._item_id = item_id
+        self._quantity = max(1, quantity)
+
+    @property
+    def item_id(self) -> str:
+        return self._item_id
+
+    @property
+    def picked_flag(self) -> str:
+        return f"picked_{self._ball_id}"
+
+    def is_gone(self, flags) -> bool:
+        return flags.has(self.picked_flag)
+
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
+        if self.is_gone(state.flags):
+            return Interaction("", ("There's nothing here.",))
+        state.flags.set(self.picked_flag)
+        return Interaction("", (f"{state.trainer.name} found something!",), effect="give_items",
+                           data={"items": {self._item_id: self._quantity}})
+
+    @classmethod
+    def _from_data(cls, data: Dict[str, Any]) -> "ItemBall":
+        return cls(data["x"], data["y"], data["id"], data["item"], int(data.get("quantity", 1)))
 
 
 class Character(Interactable, ABC):
@@ -202,16 +242,22 @@ class Healer(NPC):
 
     FAREWELL = ("Your creatures are fully rested.", "Come back any time!")
 
+    def __init__(self, x: int, y: int, name: str, lines: Sequence[str],
+                 facing: Direction = Direction.DOWN, palette: str = "pink",
+                 farewell: Sequence[str] = ()):
+        super().__init__(x, y, name, lines, facing, palette)
+        self._farewell = tuple(farewell) or self.FAREWELL
+
     def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
         greeting = super().interact(state, player_facing)
         state.trainer.party.heal_all()
-        return Interaction(self._name, greeting.lines + self.FAREWELL, effect="healed")
+        return Interaction(self._name, greeting.lines + self._farewell, effect="healed")
 
     @classmethod
     def _from_data(cls, data: Dict[str, Any]) -> "Healer":
-        data = dict(data)
-        data.setdefault("palette", "pink")
-        return super()._from_data(data)
+        return cls(data["x"], data["y"], data.get("name", "NURSE"), data.get("lines", []),
+                   Direction.from_name(data.get("facing", "down")), data.get("palette", "pink"),
+                   data.get("farewell", []))
 
 
 class Professor(NPC):
@@ -243,6 +289,61 @@ class Professor(NPC):
         return cls(data["x"], data["y"], data.get("name", "PROFESSOR"), data.get("lines", []),
                    data.get("after_lines", []), data.get("gift"), data.get("gift_lines", []),
                    Direction.from_name(data.get("facing", "down")), data.get("palette", "brown"))
+
+
+class GiftGiver(NPC):
+    """Someone who hands you items the first time you talk, then just chats."""
+    KIND = "gift_npc"
+
+    def __init__(self, x: int, y: int, name: str, lines: Sequence[str], gift_id: str,
+                 gift: Dict[str, int], after_lines: Sequence[str] = (),
+                 facing: Direction = Direction.DOWN, palette: str = "green"):
+        super().__init__(x, y, name, lines, facing, palette)
+        self._gift_flag = f"gift_{gift_id}"
+        self._gift = dict(gift)
+        self._after_lines = tuple(after_lines) or self._lines
+
+    @property
+    def gift_flag(self) -> str:
+        return self._gift_flag
+
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
+        self.turn_to(player_facing)
+        if state.flags.has(self._gift_flag):
+            return Interaction(self._name, self._after_lines)
+        state.flags.set(self._gift_flag)
+        return Interaction(self._name, self._lines, effect="give_items", data={"items": dict(self._gift)})
+
+    @classmethod
+    def _from_data(cls, data: Dict[str, Any]) -> "GiftGiver":
+        return cls(data["x"], data["y"], data.get("name", "???"), data.get("lines", []),
+                   data["id"], data.get("gift", {}), data.get("after_lines", []),
+                   Direction.from_name(data.get("facing", "down")), data.get("palette", "green"))
+
+
+class Shopkeeper(NPC):
+    """The shop clerk: greets you, then the shop screen opens with this clerk's stock."""
+    KIND = "shopkeeper"
+
+    def __init__(self, x: int, y: int, name: str, lines: Sequence[str], stock: Sequence[str],
+                 facing: Direction = Direction.DOWN, palette: str = "blue"):
+        super().__init__(x, y, name, lines, facing, palette)
+        self._stock = tuple(stock)
+
+    @property
+    def stock(self) -> Tuple[str, ...]:
+        return self._stock
+
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
+        self.turn_to(player_facing)
+        return Interaction(self._name, self._lines or ("Welcome! How may I help you?",),
+                           effect="open_shop", data={"stock": self._stock})
+
+    @classmethod
+    def _from_data(cls, data: Dict[str, Any]) -> "Shopkeeper":
+        return cls(data["x"], data["y"], data.get("name", "CLERK"), data.get("lines", []),
+                   data.get("stock", []), Direction.from_name(data.get("facing", "down")),
+                   data.get("palette", "blue"))
 
 
 CreatureFactory = Callable[[int, int], "Creature"]

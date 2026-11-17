@@ -57,11 +57,14 @@ TILE_KINDS: Dict[str, TileKind] = _kinds(
     TileKind("center_roof", False), TileKind("center_sign", False), TileKind("center_wall", False),
     TileKind("center_door", False),
     TileKind("gym_roof", False), TileKind("gym_wall", False), TileKind("gym_door", False),
+    TileKind("shop_roof", False), TileKind("shop_sign", False), TileKind("shop_wall", False),
+    TileKind("shop_door", False),
     # Indoors
     TileKind("floor", True), TileKind("mat", True), TileKind("wall", False),
     TileKind("counter", False, talk_through=True), TileKind("machine", False),
     TileKind("plant", False), TileKind("pc", False), TileKind("table", False),
-    TileKind("bookshelf", False),
+    TileKind("bookshelf", False), TileKind("bed", False), TileKind("tv", False),
+    TileKind("shelf", False),
 )
 
 
@@ -149,12 +152,13 @@ class WorldMap:
     def entity_at(self, x: int, y: int) -> Optional[Interactable]:
         return next((e for e in self._entities if e.position == (x, y)), None)
 
-    def is_passable(self, x: int, y: int) -> bool:
-        """Can the player stand on (x, y)? Warps make doors passable; entities block."""
+    def is_passable(self, x: int, y: int, flags=None) -> bool:
+        """Can the player stand on (x, y)? Warps make doors passable; entities block
+        (unless ``flags`` show they are gone, like a picked-up item ball)."""
         if not self.in_bounds(x, y):
             return False
         entity = self.entity_at(x, y)
-        if entity is not None and entity.blocks_movement:
+        if entity is not None and entity.blocks_movement and not (flags is not None and entity.is_gone(flags)):
             return False
         return self.tile_at(x, y).walkable or (x, y) in self._warps
 
@@ -250,7 +254,7 @@ class Explorer:
         """Turn to ``direction`` and walk one tile if possible, following any warp."""
         self._facing = direction
         target = self._location.moved(direction)
-        if not self.current_map.is_passable(target.x, target.y):
+        if not self.current_map.is_passable(target.x, target.y, self._flags):
             return StepResult(moved=False)
         previous = self._location
         warp = self.current_map.warp_at(target.x, target.y)
@@ -274,6 +278,8 @@ class Explorer:
             beyond = ahead.moved(self._facing)
             if m.in_bounds(beyond.x, beyond.y):
                 entity = m.entity_at(beyond.x, beyond.y)
+        if entity is not None and self._flags is not None and entity.is_gone(self._flags):
+            return None
         return entity
 
     def interact(self, state) -> Optional[Interaction]:
