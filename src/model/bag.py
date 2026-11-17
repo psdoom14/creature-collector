@@ -48,6 +48,15 @@ class Bag:
         item = self._items.get(item_id)
         return item is not None and item.has_stock()
 
+    def remove(self, item_id: str, quantity: int = 1) -> int:
+        """Take up to ``quantity`` of an item out of the bag. Returns how many were removed."""
+        item = self._items.get(item_id)
+        removed = 0
+        while item is not None and removed < quantity and item.consume():
+            removed += 1
+        self.remove_empty()
+        return removed
+
     def remove_empty(self) -> None:
         """Drop stacks that have run out."""
         for item_id in [i for i, it in self._items.items() if not it.has_stock()]:

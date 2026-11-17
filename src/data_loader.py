@@ -105,6 +105,10 @@ class DataLoader:
         """Retrieve raw species data dictionary."""
         return self._raw_creatures_by_id.get(species_id)
 
+    def get_all_items(self) -> List[Dict[str, Any]]:
+        """Return every item entry from items.json (for the debug menu)."""
+        return list(self._raw_items.values())
+
     def get_all_species(self) -> List[Dict[str, Any]]:
         """Return list of all species entries."""
         return list(self._raw_creatures_by_id.values())

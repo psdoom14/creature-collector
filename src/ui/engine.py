@@ -95,6 +95,22 @@ class GameEngine:
         self.game_state = GameState(trainer, pokedex, current_route="Fernvale Town")
         self.game_state.flags.set("has_starter")
 
+    DEBUG_KEYS = (pygame.K_F1, pygame.K_BACKQUOTE)
+
+    def handle_global_key(self, event) -> bool:
+        """Keys that work on top of any scene. Returns True if the key was used.
+
+        F1 or ` opens the debug menu, but only where the current scene allows it
+        (the overworld while walking), so a battle or menu is never interrupted.
+        """
+        if event.type != pygame.KEYDOWN or event.key not in self.DEBUG_KEYS:
+            return False
+        if not getattr(self.current_scene, "allows_debug", False):
+            return False
+        from src.ui.debug_scene import DebugScene
+        self.push_scene(DebugScene(self))
+        return True
+
     @property
     def current_scene(self) -> Optional[Scene]:
         return self.scene_stack[-1] if self.scene_stack else None
@@ -135,6 +151,8 @@ class GameEngine:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
                     # Toggle fullscreen
                     pygame.display.toggle_fullscreen()
+                elif self.handle_global_key(event):
+                    continue
                 elif self.current_scene:
                     self.current_scene.handle_event(event)
 

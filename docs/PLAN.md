@@ -176,3 +176,7 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - New `src/ui/transitions.py`: `WildTransition` (flashes, then sweeping bars) and `TrainerTransition` (flashes, then a closing circle), played by `TransitionScene` before every battle; the overworld fades back in afterwards.
 - Model: a catch now makes four shake checks (each passing with chance^1/4, so the overall catch chance is unchanged) and reports how many times the ball wobbles; failed catches say how close they were. Battle events now carry the move category and creature ids for status, stat and item effects (this also fixed potions not moving the HP bar in battle).
 - Test fix: `test_scene_rendering` no longer shuts pygame down for the rest of the run; it clears the image caches instead.
+
+**Demo helpers (2026-11-17).** 176 tests pass (+12 in `tests/test_debug.py`).
+- Route 1 now has all 25 species with equal weight (levels 3–6) so demos show variety. This replaces the balanced table; see HANDOVER section 4.
+- Debug menu: F1 or ` in the overworld (only while walking). Level up (+1/+5/+10, learning new moves), add any species at a chosen level, remove creatures (never the last), add/remove items (±1, +10, remove all), change money, heal the party; evolutions trigger on close. Model side: `src/model/debug_tools.py` and `Bag.remove()`, all going through the normal public methods.

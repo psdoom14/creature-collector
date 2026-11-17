@@ -4,7 +4,7 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![Pygame](https://img.shields.io/badge/Pygame-2.5%2B-green)
-![Tests](https://img.shields.io/badge/tests-164%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-176%20passing-brightgreen)
 
 **📘 The OOP write-up — the four pillars mapped to exact lines, design patterns and UML diagrams — is in [docs/OOP.md](docs/OOP.md).**
 
@@ -33,7 +33,8 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
    - the ball arcs, wobbles once per shake check, and clicks shut or bursts open
    - level-up glow, status sparkles, stat arrows
 7. **Grow your team:** level-ups, new moves (choose one to forget when you already know 4), and evolution with an animated sequence.
-8. **Manage everything:**
+8. **Debug menu (F1 or `):** for demos. Level up party creatures, add any species at any level, remove creatures, add or remove items, change money, heal the party. Creatures that reach their evolution level evolve when you close it.
+9. **Manage everything:**
    - Party screen
    - Pokédex
    - Bag (use items on a chosen creature)
@@ -64,6 +65,7 @@ python3 terminal_demo.py     # text-only battle prototype
 | Z / Space | talk, read signs | confirm, advance text |
 | Enter / Esc | open the pause menu | confirm (Enter) / back (Esc) |
 | X | — | back / cancel |
+| F1 or ` | open the debug menu (while walking) | |
 | F11 | toggle fullscreen | |
 
 ---
@@ -88,7 +90,7 @@ creature-collector/
 │   ├── ui/                 screens (pygame): one Scene subclass per screen
 │   ├── data_loader.py      builds model objects from data/ (factories)
 │   └── save_manager.py     JSON save files
-├── tests/                  164 tests, run headless
+├── tests/                  176 tests, run headless
 ├── scripts/capture_stages.py   regenerates the screenshots above
 └── docs/
     ├── OOP.md              the OOP design write-up with UML
@@ -105,7 +107,7 @@ Key rules the code follows:
 ## Tests
 
 ```bash
-python3 -m unittest discover tests        # 164 tests, about 1 second, no window needed
+python3 -m unittest discover tests        # 176 tests, about 1 second, no window needed
 python3 scripts/capture_stages.py          # refresh screenshots/
 ```
 

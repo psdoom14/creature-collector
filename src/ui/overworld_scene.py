@@ -136,6 +136,11 @@ class OverworldScene(Scene):
         self._sync_location_name()
         self.show_location_banner()
 
+    @property
+    def allows_debug(self) -> bool:
+        """The debug menu (F1) may open only while freely walking."""
+        return self.mode == "WALK" and not self.is_moving and self.fade_dir == 0
+
     def _sync_location_name(self) -> None:
         self.engine.game_state.current_route = self.explorer.current_map.name
 
