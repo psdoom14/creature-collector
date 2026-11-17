@@ -8,6 +8,8 @@ from src.model.type_chart import TypeChart
 from src.model.move import Move, MoveFactory
 from src.model.creature import Creature, CreatureFactory
 from src.model.item import Item, ItemFactory
+from src.model.direction import Direction
+from src.model.world import Location, World, WorldMap
 
 
 class DataLoader:
@@ -67,6 +69,26 @@ class DataLoader:
                 routes = json.load(f)
                 for r in routes:
                     self._raw_encounters[r["route_name"]] = r.get("encounters", [])
+
+    # --- world -----------------------------------------------------------
+    def load_world(self) -> World:
+        """Build the World from every data/maps/*.json file."""
+        maps = []
+        for path in sorted((self.data_dir / "maps").glob("*.json")):
+            with open(path, "r", encoding="utf-8") as f:
+                maps.append(WorldMap.from_dict(json.load(f)))
+        return World(maps)
+
+    def _world_info(self) -> Dict[str, Any]:
+        with open(self.data_dir / "world.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def start_location(self) -> Location:
+        """Where a new game begins."""
+        return Location.from_dict(self._world_info()["start"])
+
+    def start_facing(self) -> Direction:
+        return Direction.from_name(self._world_info()["start"].get("facing", "down"))
 
     def get_type_chart(self) -> TypeChart:
         """Create and return a TypeChart instance."""

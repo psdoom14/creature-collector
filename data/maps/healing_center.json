@@ -1,0 +1,75 @@
+{
+  "id": "healing_center",
+  "name": "Healing Center",
+  "legend": {
+    "#": "wall",
+    "K": "counter",
+    "M": "mat",
+    "Q": "pc",
+    "X": "machine",
+    "_": "floor",
+    "p": "plant"
+  },
+  "rows": [
+    "###########",
+    "#X_______Q#",
+    "#__KKKKK__#",
+    "#_________#",
+    "#p_______p#",
+    "#_________#",
+    "#_________#",
+    "####MMM####"
+  ],
+  "warps": [
+    {
+      "x": 4,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 5,
+      "ty": 6,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 5,
+      "ty": 6,
+      "facing": "down"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "to": "brookhaven_city",
+      "tx": 5,
+      "ty": 6,
+      "facing": "down"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "healer",
+      "x": 5,
+      "y": 1,
+      "name": "NURSE",
+      "facing": "down",
+      "palette": "pink",
+      "lines": [
+        "Welcome to the Healing Center!",
+        "Let me take care of your creatures."
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 8,
+      "y": 5,
+      "name": "TRAVELER",
+      "facing": "left",
+      "palette": "brown",
+      "lines": [
+        "Talk to the nurse across the counter.",
+        "She heals every creature in your party."
+      ]
+    }
+  ]
+}

@@ -36,6 +36,7 @@ class GameEngine:
 
         self.scene_stack: List[Scene] = []
         self.data_loader = DataLoader()
+        self.world = self.data_loader.load_world()
         self.game_state: Optional[GameState] = None
         self.save_path = Path(save_path) if save_path else DEFAULT_SAVE_PATH
 

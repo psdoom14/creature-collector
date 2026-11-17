@@ -24,16 +24,20 @@ def main():
     pygame.image.save(scaled, "screenshots/stage1_overworld.png")
     print("Saved screenshots/stage1_overworld.png")
     
-    # 2. Capture Overworld walking to PokeCenter
-    overworld.player_x = 6
-    overworld.player_y = 1
-    overworld._try_move(0, -1)
-    overworld.update(0.25)
+    # 2. Capture the healing center interior, talking to the nurse
+    from src.model.direction import Direction
+    from src.model.world import Location
+    overworld.teleport(Location("healing_center", 5, 3), Direction.UP)
+    overworld.location_timer = 0
+    overworld.handle_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_z))
+    overworld.update(2.0)
     overworld.draw(engine.native_surface)
     scaled = pygame.transform.scale(engine.native_surface, (720, 480))
-    pygame.image.save(scaled, "screenshots/stage2_overworld_pokecenter.png")
-    print("Saved screenshots/stage2_overworld_pokecenter.png")
+    pygame.image.save(scaled, "screenshots/stage2_healing_center.png")
+    print("Saved screenshots/stage2_healing_center.png")
     
+    overworld.mode = "WALK"
+
     # 3. Capture Battle Start (Wild Pikachu)
     wild_pika = engine.data_loader.get_creature(25, level=5) # Pikachu
     battle_scene = BattleScene(engine, wild_pika)

@@ -1,0 +1,110 @@
+{
+  "id": "brookhaven_city",
+  "name": "Brookhaven City",
+  "legend": {
+    ",": "path",
+    ".": "grass",
+    "C": "center_roof",
+    "D": "house_door",
+    "G": "gym_roof",
+    "H": "center_wall",
+    "R": "house_roof",
+    "S": "center_sign",
+    "T": "tree",
+    "W": "house_wall",
+    "c": "center_door",
+    "d": "gym_door",
+    "f": "flowers",
+    "g": "gym_wall",
+    "w": "house_window"
+  },
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTTTT",
+    "T....................T",
+    "T.............GGGGGG.T",
+    "T..CCCCC......GGGGGG.T",
+    "T..CCSCC......GGGGGG.T",
+    "T..HHcHH......ggdggg.T",
+    "T....,..........,....T",
+    "T....,,,,,,,,,,,,....T",
+    "T.ff......,,......ff.T",
+    "T.ff......,,......ff.T",
+    "T..RRRR...,,...RRRR..T",
+    "T..RRRR...,,...RRRR..T",
+    "T..WDwW...,,...WwDW..T",
+    "T.........,,.........T",
+    "T.........,,.........T",
+    "TTTTTTTTTT,,TTTTTTTTTT"
+  ],
+  "warps": [
+    {
+      "x": 10,
+      "y": 15,
+      "to": "route_1",
+      "tx": 7,
+      "ty": 1,
+      "facing": "down"
+    },
+    {
+      "x": 11,
+      "y": 15,
+      "to": "route_1",
+      "tx": 8,
+      "ty": 1,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "to": "healing_center",
+      "tx": 5,
+      "ty": 6,
+      "facing": "up"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "sign",
+      "x": 9,
+      "y": 13,
+      "lines": [
+        "BROOKHAVEN CITY",
+        "The city where rivers meet."
+      ]
+    },
+    {
+      "kind": "sign",
+      "x": 17,
+      "y": 6,
+      "lines": [
+        "BROOKHAVEN GYM",
+        "The gym is closed for now.",
+        "Come back later!"
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 7,
+      "y": 8,
+      "name": "SAM",
+      "facing": "down",
+      "palette": "orange",
+      "lines": [
+        "The red-roofed building heals your creatures for free.",
+        "Talk to the nurse at the counter!"
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 14,
+      "y": 13,
+      "name": "NORA",
+      "facing": "left",
+      "palette": "blue",
+      "lines": [
+        "They say the gym leader here is really tough.",
+        "Train hard before you challenge them!"
+      ]
+    }
+  ]
+}

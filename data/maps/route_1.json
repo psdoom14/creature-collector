@@ -1,0 +1,110 @@
+{
+  "id": "route_1",
+  "name": "Route 1",
+  "legend": {
+    "\"": "tall_grass",
+    ",": "path",
+    ".": "grass",
+    "T": "tree",
+    "f": "flowers",
+    "~": "water"
+  },
+  "rows": [
+    "TTTTTTT,,TTTTTTT",
+    "T......,,......T",
+    "T.\"\"\"..,,..\"\"\".T",
+    "T.\"\"\"..,,..\"\"\".T",
+    "T......,,......T",
+    "TTTT...,,...TTTT",
+    "T......,,,,,,..T",
+    "T.....\"\"\"\"\",,..T",
+    "T~~~..\"\"\"\"\",,..T",
+    "T~~~..\"\"\"\"\",,..T",
+    "T.....,,,,,,,..T",
+    "T..,,,,.......TT",
+    "T..,,\"\"\"\"....TTT",
+    "T..,,\"\"\"\"....TTT",
+    "T..,,\"\"\"\"......T",
+    "T..,,,,,,,,,...T",
+    "TTT....\"\"\",,...T",
+    "T......\"\"\",,...T",
+    "T.ff...\"\"\",,.ffT",
+    "T.ff.....,,..ffT",
+    "T.......,,,....T",
+    "TTTTT...,,..TTTT",
+    "T......,,,.....T",
+    "TTTTTTT,,TTTTTTT"
+  ],
+  "encounters": "Route 1",
+  "encounter_rate": 0.12,
+  "warps": [
+    {
+      "x": 7,
+      "y": 23,
+      "to": "fernvale_town",
+      "tx": 9,
+      "ty": 1,
+      "facing": "down"
+    },
+    {
+      "x": 8,
+      "y": 23,
+      "to": "fernvale_town",
+      "tx": 10,
+      "ty": 1,
+      "facing": "down"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "to": "brookhaven_city",
+      "tx": 10,
+      "ty": 14,
+      "facing": "up"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "to": "brookhaven_city",
+      "tx": 11,
+      "ty": 14,
+      "facing": "up"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "sign",
+      "x": 6,
+      "y": 21,
+      "lines": [
+        "ROUTE 1",
+        "North: Brookhaven City",
+        "South: Fernvale Town"
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 13,
+      "y": 10,
+      "name": "LEO",
+      "facing": "left",
+      "palette": "blue",
+      "lines": [
+        "I've been training here all morning!",
+        "Creatures get stronger every time they win."
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 2,
+      "y": 17,
+      "name": "IVY",
+      "facing": "right",
+      "palette": "purple",
+      "lines": [
+        "If your partner is hurt, use a Potion from your bag.",
+        "Or rest at the healing center in Brookhaven."
+      ]
+    }
+  ]
+}

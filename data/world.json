@@ -1,0 +1,14 @@
+{
+  "start": {
+    "map": "fernvale_town",
+    "x": 4,
+    "y": 5,
+    "facing": "down"
+  },
+  "respawn": {
+    "map": "fernvale_town",
+    "x": 4,
+    "y": 5,
+    "facing": "down"
+  }
+}

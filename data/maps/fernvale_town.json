@@ -1,0 +1,94 @@
+{
+  "id": "fernvale_town",
+  "name": "Fernvale Town",
+  "legend": {
+    ",": "path",
+    ".": "grass",
+    "=": "fence",
+    "D": "house_door",
+    "R": "house_roof",
+    "T": "tree",
+    "W": "house_wall",
+    "f": "flowers",
+    "w": "house_window",
+    "~": "water"
+  },
+  "rows": [
+    "TTTTTTTTT,,TTTTTTTTT",
+    "T........,,........T",
+    "T.RRRR...,,...RRRR.T",
+    "T.RRRR...,,...RRRR.T",
+    "T.WwDW...,,...WDwW.T",
+    "T...,....,,....,...T",
+    "T...,,,,,,,,,,,,...T",
+    "T.ff.....,,.....ff.T",
+    "T.ff.....,,.....ff.T",
+    "T........,,........T",
+    "T..====..,,..====..T",
+    "T........,,........T",
+    "T~~~~....,,....~~~~T",
+    "T~~~~..........~~~~T",
+    "TTTTTTTTTTTTTTTTTTTT"
+  ],
+  "warps": [
+    {
+      "x": 9,
+      "y": 0,
+      "to": "route_1",
+      "tx": 7,
+      "ty": 22,
+      "facing": "up"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "to": "route_1",
+      "tx": 8,
+      "ty": 22,
+      "facing": "up"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "sign",
+      "x": 8,
+      "y": 5,
+      "lines": [
+        "FERNVALE TOWN",
+        "A quiet town where every journey begins."
+      ]
+    },
+    {
+      "kind": "sign",
+      "x": 13,
+      "y": 5,
+      "lines": [
+        "PROFESSOR'S LAB"
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 6,
+      "y": 8,
+      "name": "MIA",
+      "facing": "right",
+      "palette": "green",
+      "lines": [
+        "Wild creatures hide in tall grass.",
+        "Never walk in without a partner of your own!"
+      ]
+    },
+    {
+      "kind": "npc",
+      "x": 12,
+      "y": 9,
+      "name": "OLD TOM",
+      "facing": "left",
+      "palette": "brown",
+      "lines": [
+        "North of town is Route 1.",
+        "Follow it and you'll reach Brookhaven City."
+      ]
+    }
+  ]
+}

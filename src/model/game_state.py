@@ -1,12 +1,14 @@
 """GameState: everything that goes into a save file."""
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from src.model.bag import Bag
+from src.model.direction import Direction
 from src.model.creature import CreatureFactory
 from src.model.item import ItemFactory
 from src.model.move import MoveFactory
 from src.model.pokedex import Pokedex
 from src.model.trainer import Party, PCBox, Trainer
+from src.model.world import Location
 
 
 class GameState:
@@ -19,15 +21,20 @@ class GameState:
         current_route: str = "Route 1",
         play_time: float = 0.0,
         badges: int = 0,
-        player_position: Optional[Tuple[int, int]] = None,
+        location: Optional[Location] = None,
+        facing: Direction = Direction.DOWN,
+        respawn_location: Optional[Location] = None,
     ):
         self.trainer = trainer
         self.pokedex = pokedex or Pokedex()
         self.current_route = current_route
         self._play_time = max(0.0, play_time)
         self.badges = badges
-        #: Tile the player stood on when saving (replaced by a full map location in Phase 4).
-        self.player_position: Optional[Tuple[int, int]] = player_position
+        #: Where the player stands (None = the world's start location).
+        self.location: Optional[Location] = location
+        self.facing: Direction = facing
+        #: Where the player wakes up after blacking out (the last healing center used).
+        self.respawn_location: Optional[Location] = respawn_location
 
     @property
     def play_time(self) -> float:
@@ -50,7 +57,9 @@ class GameState:
             "current_route": self.current_route,
             "play_time": self._play_time,
             "badges": self.badges,
-            "player_position": list(self.player_position) if self.player_position else None,
+            "location": self.location.to_dict() if self.location else None,
+            "facing": self.facing.key,
+            "respawn_location": self.respawn_location.to_dict() if self.respawn_location else None,
         }
 
     @staticmethod
@@ -90,5 +99,8 @@ class GameState:
             current_route=data.get("current_route", "Route 1"),
             play_time=data.get("play_time", 0.0),
             badges=data.get("badges", 0),
-            player_position=tuple(data["player_position"]) if data.get("player_position") else None,
+            location=Location.from_dict(data["location"]) if data.get("location") else None,
+            facing=Direction.from_name(data.get("facing", "down")),
+            respawn_location=(Location.from_dict(data["respawn_location"])
+                              if data.get("respawn_location") else None),
         )

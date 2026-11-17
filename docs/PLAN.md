@@ -125,6 +125,15 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - Fixed B14 (overworld): `BagScene` lets you use items on a chosen creature; `Item.usable_in_field` is overridden by `CatchBall` so balls say they're battle-only. EXIT just closes the menu, as in the classic games.
 - Default trainer name is now "PLAYER" (name entry comes with the Phase 5 intro).
 
+**Phase 4 done (2026-11-17).** 108 tests pass (+26 in `tests/test_world.py`, `tests/test_overworld.py`).
+- World rules moved into the model: `src/model/world.py` (`Location`, `TileKind`, `Warp`, `WorldMap`, `World`, `Explorer`) and `src/model/direction.py`. The overworld screen only animates and draws (`src/ui/world_renderer.py` holds tile art, NPC sprites and the camera).
+- New hierarchy in `src/model/entities.py`: `Interactable` → `Sign`, and `Interactable` → `Character` → `NPC` → `Healer`; the overworld just calls `interact()`.
+- Maps are data in `data/maps/*.json` (rows of characters + a legend, warps, entities, encounter table); `data/world.json` holds the start location. World: **Fernvale Town** (start) → **Route 1** (tall grass, 12 % encounter rate) → **Brookhaven City** (healing center, gym building closed until Phase 6) → **Healing Center** interior with the nurse behind the counter.
+- Doors are walls unless a warp is placed on them; warps fade the screen; maps larger than the screen scroll with a camera, smaller ones are centred.
+- Healing at the nurse sets the blackout respawn point. Saves store the full location and facing.
+- A test walks the whole world from the start tile and checks every map and the nurse can be reached and every warp lands safely.
+- Controls: arrows/WASD walk (hold to keep walking), Z/Space talk, Enter/Esc menu.
+
 ### Demo world (original names to be decided)
 - **Town 1** — player's home, professor's lab, exit north.
 - **Route** — tall grass, a couple of trainers, signs.

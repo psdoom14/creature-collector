@@ -13,6 +13,7 @@ os.environ["SDL_AUDIODRIVER"] = "dummy"
 import pygame
 
 from src.model.game_state import GameState
+from src.model.world import Location
 from src.save_manager import SaveManager
 from src.ui import components
 from src.ui.bag_scene import BagScene
@@ -144,11 +145,11 @@ class TestSaveAndTitle(_EngineTest):
 
     def test_game_state_round_trips_position_and_play_time(self):
         gs = self.engine.game_state
-        gs.player_position = (4, 5)
+        gs.location = Location("fernvale_town", 4, 5)
         gs.add_play_time(75.5)
         data = gs.to_dict()
         loaded = GameState.from_dict(data, self.loader)
-        self.assertEqual(loaded.player_position, (4, 5))
+        self.assertEqual(loaded.location, Location("fernvale_town", 4, 5))
         self.assertAlmostEqual(loaded.play_time, 75.5)
 
 

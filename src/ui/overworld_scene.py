@@ -1,206 +1,129 @@
-"""Overworld scene with authentic GBA tile-based exploration, animated water, smooth movement, and walk cycles."""
-import pygame
-import random
-from pathlib import Path
-from typing import Optional, Dict, Tuple
+"""Overworld screen: walking around the world, talking to people, warps and wild encounters.
 
-from src.ui.scene import Scene
+The rules (what blocks you, where warps go, who you talk to, where wild creatures
+appear) live in the model's ``Explorer``. This scene only animates and draws.
+
+Controls: arrows/WASD walk, Z/Space talk or read, Enter/Esc open the menu.
+"""
+import random
+from typing import List, Optional, Tuple
+
+import pygame
+
+from src.model.direction import Direction
+from src.model.world import Explorer, Location, StepResult
+from src.save_manager import SaveManager
+from src.ui.bag_scene import BagScene
 from src.ui.battle_scene import BattleScene
+from src.ui.components import (
+    MenuBox, TextBox, draw_fitted_text, draw_gba_panel, get_font, small_font, wrap_text,
+)
 from src.ui.party_scene import PartyScene
 from src.ui.pokedex_scene import PokedexScene
-from src.ui.bag_scene import BagScene
-from src.ui.components import (
-    MenuBox, draw_fitted_text, draw_gba_panel, get_font, small_font, wrap_text,
-)
-from src.save_manager import SaveManager
+from src.ui.scene import Scene
+from src.ui.world_renderer import TILE, CharacterSprites, MapRenderer
 
-
-class TileManager:
-    """Loads and caches 16x16 GBA overworld tiles with procedural fallbacks."""
-    _tiles: Dict[str, pygame.Surface] = {}
-
-    @classmethod
-    def clear_cache(cls) -> None:
-        cls._tiles.clear()
-
-    @classmethod
-    def get_tile(cls, tile_name: str) -> pygame.Surface:
-        if tile_name in cls._tiles:
-            return cls._tiles[tile_name]
-
-        # Resolve asset path
-        tile_path = Path(__file__).resolve().parent.parent.parent / "assets" / "tiles" / f"{tile_name}.png"
-        if tile_path.exists():
-            try:
-                img = pygame.image.load(str(tile_path))
-                if pygame.display.get_surface() is not None:
-                    img = img.convert_alpha()
-                if img.get_size() != (16, 16):
-                    img = pygame.transform.scale(img, (16, 16))
-                cls._tiles[tile_name] = img
-                return img
-            except Exception:
-                pass
-
-        # Procedural fallback
-        surf = pygame.Surface((16, 16), pygame.SRCALPHA)
-        cls._render_fallback(surf, tile_name)
-        cls._tiles[tile_name] = surf
-        return surf
-
-    @classmethod
-    def _render_fallback(cls, surf: pygame.Surface, tile_name: str) -> None:
-        t_rect = pygame.Rect(0, 0, 16, 16)
-        if "grass" in tile_name:
-            if tile_name == "tall_grass_overlay":
-                # Transparent overlay with two small blade lines
-                pygame.draw.line(surf, (72, 144, 48), (4, 15), (4, 10), 2)
-                pygame.draw.line(surf, (72, 144, 48), (11, 15), (11, 11), 2)
-            else:
-                pygame.draw.rect(surf, (120, 192, 88), t_rect)
-                if tile_name == "tall_grass":
-                    pygame.draw.line(surf, (72, 144, 48), (4, 12), (4, 4), 2)
-                    pygame.draw.line(surf, (72, 144, 48), (11, 12), (11, 5), 2)
-        elif "path" in tile_name:
-            pygame.draw.rect(surf, (232, 216, 176), t_rect)
-        elif "tree" in tile_name:
-            pygame.draw.rect(surf, (48, 104, 56), t_rect)
-            pygame.draw.circle(surf, (32, 80, 40), (8, 7), 6)
-        elif "water" in tile_name:
-            pygame.draw.rect(surf, (88, 152, 240), t_rect)
-            pygame.draw.line(surf, (168, 208, 255), (3, 7), (12, 7), 1)
-        elif "pokecenter" in tile_name:
-            pygame.draw.rect(surf, (224, 72, 72), t_rect)
-            pygame.draw.line(surf, (255, 255, 255), (8, 3), (8, 13), 2)
-            pygame.draw.line(surf, (255, 255, 255), (3, 8), (13, 8), 2)
-        else:
-            pygame.draw.rect(surf, (128, 128, 128), t_rect)
-
-
-class TrainerSpriteManager:
-    """Loads and caches 4-directional trainer walk cycle frames (idle, walk1, walk2)."""
-    _sprites: Dict[Tuple[str, int], pygame.Surface] = {}
-
-    @classmethod
-    def clear_cache(cls) -> None:
-        cls._sprites.clear()
-
-    @classmethod
-    def get_sprite(cls, facing: str, frame_idx: int) -> pygame.Surface:
-        key = (facing, frame_idx % 3)
-        if key in cls._sprites:
-            return cls._sprites[key]
-
-        frame_name = ["idle", "walk1", "walk2"][frame_idx % 3]
-        sprite_path = (
-            Path(__file__).resolve().parent.parent.parent
-            / "assets"
-            / "characters"
-            / "trainer"
-            / f"trainer_{facing}_{frame_name}.png"
-        )
-
-        if sprite_path.exists():
-            try:
-                img = pygame.image.load(str(sprite_path))
-                if pygame.display.get_surface() is not None:
-                    img = img.convert_alpha()
-                cls._sprites[key] = img
-                return img
-            except Exception:
-                pass
-
-        # If right direction asset missing, attempt mirror flip from left
-        if facing == "right":
-            left_sprite = cls.get_sprite("left", frame_idx)
-            flipped = pygame.transform.flip(left_sprite, True, False)
-            cls._sprites[key] = flipped
-            return flipped
-
-        # Procedural fallback sprite
-        surf = pygame.Surface((16, 20), pygame.SRCALPHA)
-        # Cap
-        pygame.draw.circle(surf, (200, 48, 48), (8, 5), 5)
-        # Jacket
-        pygame.draw.rect(surf, (40, 72, 160), pygame.Rect(4, 8, 8, 7))
-        # Direction indicator
-        fx, fy = 8, 6
-        if facing == "up":
-            fy -= 2
-        elif facing == "down":
-            fy += 2
-        elif facing == "left":
-            fx -= 2
-        elif facing == "right":
-            fx += 2
-        pygame.draw.circle(surf, (248, 224, 192), (fx, fy), 2)
-        cls._sprites[key] = surf
-        return surf
+TALK_KEYS = (pygame.K_z, pygame.K_SPACE)
+MENU_KEYS = (pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_TAB)
+CANCEL_KEYS = (pygame.K_ESCAPE, pygame.K_x, pygame.K_BACKSPACE)
+ADVANCE_KEYS = (pygame.K_z, pygame.K_SPACE, pygame.K_RETURN, pygame.K_x)
+MOVE_KEYS = {
+    pygame.K_UP: Direction.UP, pygame.K_w: Direction.UP,
+    pygame.K_DOWN: Direction.DOWN, pygame.K_s: Direction.DOWN,
+    pygame.K_LEFT: Direction.LEFT, pygame.K_a: Direction.LEFT,
+    pygame.K_RIGHT: Direction.RIGHT, pygame.K_d: Direction.RIGHT,
+}
 
 
 class OverworldScene(Scene):
-    """Grid-based exploration screen matching GBA Pallet Town / Route 1 aesthetics."""
+    """Modes: WALK (free movement), DIALOGUE (text box open), MENU (pause menu open)."""
 
-    TILE_SIZE = 16
-    GRID_W = 15
-    GRID_H = 10
+    STEP_SECONDS = 0.20
+    FADE_SECONDS = 0.18
+    LOCATION_BANNER_SECONDS = 2.5
+    WATER_FRAME_SECONDS = 0.25
 
-    # Tile Types: 0=Path, 1=Grass, 2=Tree, 3=Water, 4=PokeCenter
-    MAP_DATA = [
-        [2, 2, 2, 2, 2, 4, 4, 4, 2, 2, 2, 2, 2, 2, 2],
-        [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2],
-        [2, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2],
-        [2, 0, 1, 1, 0, 2, 2, 0, 0, 0, 1, 1, 1, 1, 2],
-        [2, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2],
-        [2, 1, 1, 1, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 2],
-        [2, 1, 1, 1, 0, 0, 0, 0, 3, 3, 3, 0, 1, 1, 2],
-        [2, 1, 1, 1, 0, 0, 0, 0, 3, 3, 3, 0, 1, 1, 2],
-        [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2],
-        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-    ]
-
-    def __init__(self, engine):
+    def __init__(self, engine, rng: Optional[random.Random] = None):
         super().__init__(engine)
-        saved = engine.game_state.player_position
-        self.player_x, self.player_y = saved if saved else self.START_TILE
-        self.player_facing = "down"  # up, down, left, right
-
-        # Smooth grid walking state
-        self.is_moving: bool = False
-        self.move_timer: float = 0.0
-        self.move_duration: float = 0.20  # 200ms per step lerp
-        self.start_tile_x: int = self.player_x
-        self.start_tile_y: int = self.player_y
-        self.target_tile_x: int = self.player_x
-        self.target_tile_y: int = self.player_y
-        self.walk_frame: int = 0  # 0=idle, 1=walk1, 2=walk2
-
-        # Animated water state
-        self.water_timer: float = 0.0
-        self.water_frame: int = 0
-        self.water_frame_duration: float = 0.25  # 4 FPS (250ms per frame)
+        self.rng = rng or random.Random()
+        state = engine.game_state
+        start = state.location or engine.data_loader.start_location()
+        facing = state.facing if state.location else engine.data_loader.start_facing()
+        self.explorer = Explorer(engine.world, start, facing)
+        self.renderer = MapRenderer(self.explorer.current_map)
 
         self.font = get_font(10)
         self.font_sm = small_font()
+        self.mode = "WALK"
+        self.held_direction: Optional[Direction] = None
 
-        # In-game pause menu
-        self.is_menu_open = False
-        self.pause_menu = MenuBox(
-            pygame.Rect(150, 8, 84, 88),
-            ["POKÉDEX", "POKÉMON", "BAG", "SAVE", "EXIT"],
-            columns=1,
-        )
+        # Step animation: the sprite slides from step_from to the current tile
+        self.step_timer = 0.0
+        self.step_from: Optional[Tuple[int, int]] = None
+        self.walk_frame = 0
+        # Warp fade: 0 = clear, 1 = black; fade_dir +1 fading out, -1 fading in
+        self.fade = 0.0
+        self.fade_dir = 0
+        self._pending_map_change = False
+        self._last_frame: Optional[pygame.Surface] = None  # shown while fading out of a map
+
+        self.water_timer = 0.0
+        self.water_frame = 0
+
+        self.pause_menu = MenuBox(pygame.Rect(150, 8, 84, 88), ["POKÉDEX", "PARTY", "BAG", "SAVE", "EXIT"])
+        self.textbox = TextBox(pygame.Rect(4, 110, 232, 46))
+        self.dialogue: List[str] = []
 
         self.notification_text: Optional[str] = None
-        self.notification_timer: float = 0.0
-
-        # Location name shown briefly when entering an area (slides up after a few seconds)
-        self.location_timer: float = 0.0
+        self.notification_timer = 0.0
+        self.location_timer = 0.0
+        self._sync_location_name()
         self.show_location_banner()
 
-    START_TILE = (7, 4)
-    LOCATION_BANNER_SECONDS = 2.5
+    # ------------------------------------------------------------------
+    # Position helpers (also used by tests and the screenshot script)
+    # ------------------------------------------------------------------
+    @property
+    def player_x(self) -> int:
+        return self.explorer.location.x
 
+    @player_x.setter
+    def player_x(self, value: int) -> None:
+        loc = self.explorer.location
+        self.explorer.teleport(Location(loc.map_id, value, loc.y))
+
+    @property
+    def player_y(self) -> int:
+        return self.explorer.location.y
+
+    @player_y.setter
+    def player_y(self, value: int) -> None:
+        loc = self.explorer.location
+        self.explorer.teleport(Location(loc.map_id, loc.x, value))
+
+    @property
+    def is_moving(self) -> bool:
+        return self.step_from is not None
+
+    def teleport(self, location: Location, facing: Direction) -> None:
+        """Jump straight to ``location`` (redraws the map if it changed)."""
+        old_map = self.explorer.location.map_id
+        self.explorer.teleport(location, facing)
+        self.step_from = None
+        if location.map_id != old_map:
+            self._on_map_changed()
+
+    def _on_map_changed(self) -> None:
+        self.renderer = MapRenderer(self.explorer.current_map)
+        self._sync_location_name()
+        self.show_location_banner()
+
+    def _sync_location_name(self) -> None:
+        self.engine.game_state.current_route = self.explorer.current_map.name
+
+    # ------------------------------------------------------------------
+    # Banner, notifications, saving, blackout
+    # ------------------------------------------------------------------
     @property
     def location_banner_visible(self) -> bool:
         return self.location_timer > 0
@@ -208,219 +131,218 @@ class OverworldScene(Scene):
     def show_location_banner(self) -> None:
         self.location_timer = self.LOCATION_BANNER_SECONDS
 
-    def save_game(self) -> bool:
-        """Store the player's position and write the save file."""
-        state = self.engine.game_state
-        state.player_position = (self.player_x, self.player_y)
-        return SaveManager.save_game(state, self.engine.save_path)
-
-    # Tile just below the healing center, where the player wakes up after blacking out.
-    RESPAWN_TILE = (6, 1)
-
-    def respawn_after_blackout(self, money_lost: int) -> None:
-        """Called after a lost battle: the party is already healed by Trainer.black_out()."""
-        self.player_x, self.player_y = self.RESPAWN_TILE
-        self.start_tile_x = self.target_tile_x = self.player_x
-        self.start_tile_y = self.target_tile_y = self.player_y
-        self.is_moving = False
-        self.player_facing = "down"
-        self.show_notification(f"Blacked out! Lost ${money_lost}", 3.0)
-
     def show_notification(self, text: str, duration: float = 2.0) -> None:
         self.notification_text = text
         self.notification_timer = duration
 
-    def _can_move_to(self, tx: int, ty: int) -> bool:
-        if not (0 <= tx < self.GRID_W and 0 <= ty < self.GRID_H):
-            return False
-        tile = self.MAP_DATA[ty][tx]
-        # Cannot walk on trees (2) or water (3)
-        return tile not in (2, 3)
+    def save_game(self) -> bool:
+        state = self.engine.game_state
+        state.location = self.explorer.location
+        state.facing = self.explorer.facing
+        return SaveManager.save_game(state, self.engine.save_path)
 
-    def _try_move(self, dx: int, dy: int) -> None:
-        if self.is_moving:
-            return
+    def respawn_after_blackout(self, money_lost: int) -> None:
+        """After a lost battle (party already healed by Trainer.black_out())."""
+        state = self.engine.game_state
+        target = state.respawn_location or self.engine.data_loader.start_location()
+        self.teleport(target, Direction.UP if state.respawn_location else Direction.DOWN)
+        self.mode = "WALK"
+        self.show_notification(f"Blacked out! Lost ${money_lost}", 3.0)
 
-        nx = self.player_x + dx
-        ny = self.player_y + dy
-
-        if dx > 0:
-            self.player_facing = "right"
-        elif dx < 0:
-            self.player_facing = "left"
-        elif dy > 0:
-            self.player_facing = "down"
-        elif dy < 0:
-            self.player_facing = "up"
-
-        if self._can_move_to(nx, ny):
-            self.is_moving = True
-            self.move_timer = 0.0
-            self.start_tile_x = self.player_x
-            self.start_tile_y = self.player_y
-            self.target_tile_x = nx
-            self.target_tile_y = ny
-
-    def _on_step(self) -> None:
-        current_tile = self.MAP_DATA[self.player_y][self.player_x]
-
-        # Tall grass step -> encounter chance (1 in 5 steps)
-        if current_tile == 1:
-            if random.random() < 0.20:
-                wild = self.engine.data_loader.get_wild_encounter(self.engine.game_state.current_route)
-                if wild:
-                    self.engine.game_state.pokedex.register_seen(wild.species_id)
-                    self.engine.push_scene(BattleScene(self.engine, wild))
-                    return
-
-        # Pokémon Center step -> full heal!
-        elif current_tile == 4:
-            self.engine.game_state.trainer.party.heal_all()
-            self.show_notification("Healing Center: Party restored!")
-
+    # ------------------------------------------------------------------
+    # Input
+    # ------------------------------------------------------------------
     def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type == pygame.KEYUP:
+            if MOVE_KEYS.get(event.key) == self.held_direction:
+                self.held_direction = None
+            return
         if event.type != pygame.KEYDOWN:
             return
-
         key = event.key
 
-        if self.is_menu_open:
-            if key in (pygame.K_ESCAPE, pygame.K_x):
-                self.is_menu_open = False
-            else:
-                choice = self.pause_menu.handle_input(key)
-                if choice is not None:
-                    if choice == 0:  # POKEDEX
-                        self.is_menu_open = False
-                        self.engine.push_scene(PokedexScene(self.engine))
-                    elif choice == 1:  # POKEMON
-                        self.is_menu_open = False
-                        self.engine.push_scene(PartyScene(self.engine))
-                    elif choice == 2:  # BAG
-                        self.is_menu_open = False
-                        self.engine.push_scene(BagScene(self.engine))
-                    elif choice == 3:  # SAVE
-                        self.is_menu_open = False
-                        ok = self.save_game()
-                        self.show_notification("Game saved!" if ok else "Save failed!")
-                    elif choice == 4:  # EXIT
-                        self.is_menu_open = False
+        if self.mode == "DIALOGUE":
+            if key in ADVANCE_KEYS:
+                self._advance_dialogue()
+        elif self.mode == "MENU":
+            self._handle_menu_key(key)
+        elif key in MOVE_KEYS:
+            self.held_direction = MOVE_KEYS[key]
+            self._try_step(MOVE_KEYS[key])
+        elif key in TALK_KEYS:
+            if not self.is_moving:
+                self._interact()
+        elif key in MENU_KEYS:
+            if not self.is_moving:
+                self.mode = "MENU"
+
+    def _handle_menu_key(self, key: int) -> None:
+        if key in CANCEL_KEYS:
+            self.mode = "WALK"
             return
-
-        # Normal Overworld movement (ignore if currently executing a step)
-        if self.is_moving:
+        choice = self.pause_menu.handle_input(key)
+        if choice is None:
             return
+        self.mode = "WALK"
+        if choice == 0:
+            self.engine.push_scene(PokedexScene(self.engine))
+        elif choice == 1:
+            self.engine.push_scene(PartyScene(self.engine))
+        elif choice == 2:
+            self.engine.push_scene(BagScene(self.engine))
+        elif choice == 3:
+            self.show_notification("Game saved!" if self.save_game() else "Save failed!")
+        # choice 4 (EXIT) just closes the menu
 
-        if key in (pygame.K_UP, pygame.K_w):
-            self._try_move(0, -1)
-        elif key in (pygame.K_DOWN, pygame.K_s):
-            self._try_move(0, 1)
-        elif key in (pygame.K_LEFT, pygame.K_a):
-            self._try_move(-1, 0)
-        elif key in (pygame.K_RIGHT, pygame.K_d):
-            self._try_move(1, 0)
-        elif key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE):
-            self.is_menu_open = True
+    # ------------------------------------------------------------------
+    # Walking
+    # ------------------------------------------------------------------
+    def _try_step(self, direction: Direction) -> None:
+        if self.is_moving or self.fade_dir != 0 or self.mode != "WALK":
+            return
+        before = self.explorer.location
+        result: StepResult = self.explorer.step(direction)
+        if not result.moved:
+            return
+        if result.warped:
+            # The model has already moved us; fade out, swap the map, fade back in.
+            self.fade_dir, self.fade = 1, 0.0
+            self._pending_map_change = before.map_id != self.explorer.location.map_id
+            self.held_direction = None
+            return
+        self.step_from = (before.x, before.y)
+        self.step_timer = 0.0
 
+    def _finish_step(self) -> None:
+        self.step_from = None
+        self.walk_frame = 0
+        table = self.explorer.roll_encounter(self.rng)
+        if table:
+            wild = self.engine.data_loader.get_wild_encounter(table)
+            if wild:
+                self.engine.game_state.pokedex.register_seen(wild.species_id)
+                self.held_direction = None
+                self.engine.push_scene(BattleScene(self.engine, wild))
+                return
+        if self.held_direction and self.mode == "WALK":
+            self._try_step(self.held_direction)
+
+    # ------------------------------------------------------------------
+    # Talking
+    # ------------------------------------------------------------------
+    def _interact(self) -> None:
+        result = self.explorer.interact(self.engine.game_state.trainer)
+        if result is None:
+            return
+        if result.effect == "healed":
+            # Wake up here after blacking out.
+            self.engine.game_state.respawn_location = self.explorer.location
+        self.held_direction = None
+        self.dialogue = list(result.lines)
+        self.mode = "DIALOGUE"
+        self.textbox.set_message(self.dialogue.pop(0) if self.dialogue else "...")
+
+    def _advance_dialogue(self) -> None:
+        if not self.textbox.is_finished_typing:
+            self.textbox.advance()
+        elif self.dialogue:
+            self.textbox.set_message(self.dialogue.pop(0))
+        else:
+            self.mode = "WALK"
+
+    # ------------------------------------------------------------------
+    # Update / draw
+    # ------------------------------------------------------------------
     def update(self, dt: float) -> None:
         self.location_timer = max(0.0, self.location_timer - dt)
         if self.notification_timer > 0:
             self.notification_timer = max(0.0, self.notification_timer - dt)
-            if self.notification_timer == 0.0:
+            if self.notification_timer == 0:
                 self.notification_text = None
 
-        # Water animation cycle (4 FPS)
         self.water_timer += dt
-        if self.water_timer >= self.water_frame_duration:
+        if self.water_timer >= self.WATER_FRAME_SECONDS:
             self.water_timer = 0.0
             self.water_frame = (self.water_frame + 1) % 4
 
-        # Smooth grid walking interpolation and walk cycle
-        if self.is_moving:
-            self.move_timer += dt
-            alpha = min(1.0, self.move_timer / self.move_duration)
+        self.textbox.update(dt)
 
-            # 4-stage walk cycle: idle -> walk1 -> idle -> walk2
-            if alpha < 0.25:
-                self.walk_frame = 1
-            elif alpha < 0.50:
-                self.walk_frame = 0
-            elif alpha < 0.75:
-                self.walk_frame = 2
-            else:
-                self.walk_frame = 0
+        if self.fade_dir:
+            self.fade += self.fade_dir * dt / self.FADE_SECONDS
+            if self.fade_dir > 0 and self.fade >= 1.0:
+                self.fade, self.fade_dir = 1.0, -1
+                if self._pending_map_change:
+                    self._pending_map_change = False
+                    self._on_map_changed()
+            elif self.fade_dir < 0 and self.fade <= 0.0:
+                self.fade, self.fade_dir = 0.0, 0
 
-            if self.move_timer >= self.move_duration:
-                self.player_x = self.target_tile_x
-                self.player_y = self.target_tile_y
-                self.is_moving = False
-                self.walk_frame = 0
-                self._on_step()
+        if self.step_from is not None:
+            self.step_timer += dt
+            progress = min(1.0, self.step_timer / self.STEP_SECONDS)
+            self.walk_frame = (1, 0, 2, 0)[min(3, int(progress * 4))]
+            if progress >= 1.0:
+                self._finish_step()
+
+    def _player_pixel_pos(self) -> Tuple[float, float]:
+        loc = self.explorer.location
+        if self.step_from is None:
+            return float(loc.x * TILE), float(loc.y * TILE)
+        t = min(1.0, self.step_timer / self.STEP_SECONDS)
+        fx, fy = self.step_from
+        return (fx + (loc.x - fx) * t) * TILE, (fy + (loc.y - fy) * t) * TILE
 
     def draw(self, surface: pygame.Surface) -> None:
-        # 1. Render Tiles
-        for r in range(self.GRID_H):
-            for c in range(self.GRID_W):
-                tile = self.MAP_DATA[r][c]
-                rx = c * self.TILE_SIZE
-                ry = r * self.TILE_SIZE
+        # While fading out of a map the model is already on the new one; keep
+        # drawing the old map until the screen is black.
+        if self._pending_map_change and self._last_frame is not None:
+            surface.blit(self._last_frame, (0, 0))
+            self._draw_fade(surface)
+            return
 
-                if tile == 0:  # Path
-                    surface.blit(TileManager.get_tile("path"), (rx, ry))
-                elif tile == 1:  # Tall Grass
-                    surface.blit(TileManager.get_tile("grass"), (rx, ry))
-                    surface.blit(TileManager.get_tile("tall_grass"), (rx, ry))
-                elif tile == 2:  # Tree
-                    surface.blit(TileManager.get_tile("tree"), (rx, ry))
-                elif tile == 3:  # Water (animated 4-frame)
-                    surface.blit(TileManager.get_tile(f"water_{self.water_frame}"), (rx, ry))
-                elif tile == 4:  # PokeCenter Modular Façade
-                    if c == 5:
-                        surface.blit(TileManager.get_tile("pokecenter_left"), (rx, ry))
-                    elif c == 6:
-                        surface.blit(TileManager.get_tile("pokecenter_center"), (rx, ry))
-                    elif c == 7:
-                        surface.blit(TileManager.get_tile("pokecenter_right"), (rx, ry))
-                    else:
-                        surface.blit(TileManager.get_tile("pokecenter_center"), (rx, ry))
+        px, py = self._player_pixel_pos()
+        cam = self.renderer.camera_offset(px, py)
+        self.renderer.draw_ground(surface, cam, self.water_frame)
 
-        # 2. Render Player with smooth position interpolation
-        if self.is_moving:
-            alpha = min(1.0, self.move_timer / self.move_duration)
-            px = (self.start_tile_x + (self.target_tile_x - self.start_tile_x) * alpha) * self.TILE_SIZE
-            py = (self.start_tile_y + (self.target_tile_y - self.start_tile_y) * alpha) * self.TILE_SIZE
-        else:
-            px = float(self.player_x * self.TILE_SIZE)
-            py = float(self.player_y * self.TILE_SIZE)
+        # People, signs and the player, back to front
+        world_map = self.explorer.current_map
+        drawables = [(e.y, 0, e) for e in world_map.entities]
+        drawables.append((py / TILE, 1, None))
+        for _, _, entity in sorted(drawables, key=lambda d: (d[0], d[1])):
+            if entity is not None:
+                self.renderer.draw_entity(surface, entity, cam)
+            else:
+                sprite = CharacterSprites.get("player", self.explorer.facing, self.walk_frame)
+                surface.blit(sprite, (round(px) - cam[0], round(py) - cam[1] - (sprite.get_height() - TILE)))
 
-        player_sprite = TrainerSpriteManager.get_sprite(self.player_facing, self.walk_frame)
-        sprite_offset_y = player_sprite.get_height() - self.TILE_SIZE
-        surface.blit(player_sprite, (round(px), round(py - sprite_offset_y)))
+        loc = self.explorer.location
+        if world_map.tile_at(loc.x, loc.y).encounters:
+            self.renderer.draw_grass_overlay(surface, px, py, cam)
 
-        # 3. Tall grass foot immersion overlay
-        center_tile_x = int((px + 8) // self.TILE_SIZE)
-        center_tile_y = int((py + 8) // self.TILE_SIZE)
-        is_in_tall_grass = False
-        if 0 <= center_tile_x < self.GRID_W and 0 <= center_tile_y < self.GRID_H:
-            if self.MAP_DATA[center_tile_y][center_tile_x] == 1:
-                is_in_tall_grass = True
-        if not is_in_tall_grass and self.MAP_DATA[self.player_y][self.player_x] == 1:
-            is_in_tall_grass = True
+        self._draw_hud(surface)
+        if not self._pending_map_change:
+            if self._last_frame is None or self._last_frame.get_size() != surface.get_size():
+                self._last_frame = surface.copy()
+            else:
+                self._last_frame.blit(surface, (0, 0))
+        self._draw_fade(surface)
 
-        if is_in_tall_grass:
-            surface.blit(TileManager.get_tile("tall_grass_overlay"), (round(px), round(py)))
+    def _draw_fade(self, surface: pygame.Surface) -> None:
+        if self.fade > 0:
+            veil = pygame.Surface(surface.get_size())
+            veil.set_alpha(int(255 * min(1.0, self.fade)))
+            surface.blit(veil, (0, 0))
 
-        # 4. Location banner: sized to the name, slides up and away after a few seconds
+    def _draw_hud(self, surface: pygame.Surface) -> None:
         if self.location_banner_visible:
             name = self.engine.game_state.current_route
             width = min(160, self.font.size(name)[0] + 16)
-            slide = min(1.0, self.location_timer / 0.3)  # last 0.3s slides out
+            slide = min(1.0, self.location_timer / 0.3)
             y = int(4 - (1.0 - slide) * 24)
             draw_gba_panel(surface, pygame.Rect(4, y, width, 18))
             draw_fitted_text(surface, name, 12, y + 1, width - 16, self.font)
 
-        # 5. Notification box (bottom, wraps to two lines)
-        if self.notification_text:
+        if self.notification_text and self.mode != "DIALOGUE":
             lines = wrap_text(self.notification_text, 216, self.font_sm)[:2]
             height = 8 + 13 * len(lines)
             box = pygame.Rect(4, 156 - height, 232, height)
@@ -428,6 +350,7 @@ class OverworldScene(Scene):
             for i, line in enumerate(lines):
                 draw_fitted_text(surface, line, box.x + 8, box.y + 4 + 13 * i, 216, self.font_sm)
 
-        # 6. Pause Menu
-        if self.is_menu_open:
+        if self.mode == "DIALOGUE":
+            self.textbox.draw(surface)
+        elif self.mode == "MENU":
             self.pause_menu.draw(surface)
