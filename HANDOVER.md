@@ -5,7 +5,15 @@
 > **Project Working Directory**: `/home/psdoom14/.gemini/antigravity/scratch/creature-collector`  
 > **GitHub Repository**: [https://github.com/psdoom14/creature-collector](https://github.com/psdoom14/creature-collector) (Private, user: `psdoom14`)  
 > **Primary Stack**: Python 3.11+ / Pygame 2.6.1 / JSON Data Store  
-> **Current Test Status**: 37 / 37 automated tests passing in `< 0.5s`
+> **Current Test Status**: 37 / 37 automated tests passing in `< 0.5s`  
+> 
+> **Key Reference Documents**:
+> - **Visual & Mechanics Audit Report** (with embedded stage screenshots):  
+>   - In-repo path: [`docs/visual_audit.md`](file:///home/psdoom14/.gemini/antigravity/scratch/creature-collector/docs/visual_audit.md)  
+>   - Antigravity Brain path: [`visual_audit.md`](file:///home/psdoom14/.gemini/antigravity/brain/dae5e978-8145-4823-9d72-886ac2d10bf5/visual_audit.md)
+> - **Teamwork Expansion Prompt Draft** (Requirements R1–R5 & acceptance criteria for the world/Pokecenter overhaul):  
+>   - In-repo path: [`docs/prompt_draft.md`](file:///home/psdoom14/.gemini/antigravity/scratch/creature-collector/docs/prompt_draft.md)  
+>   - Antigravity Brain path: [`prompt_draft.md`](file:///home/psdoom14/.gemini/antigravity/brain/dae5e978-8145-4823-9d72-886ac2d10bf5/prompt_draft.md)
 
 ---
 
