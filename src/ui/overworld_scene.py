@@ -11,6 +11,7 @@ from typing import List, Optional, Tuple
 import pygame
 
 from src.model.direction import Direction
+from src.model.errors import SaveError
 from src.model.entities import StarterBall, TrainerNPC
 from src.model.story import give_starter, pick_rival_starter
 from src.model.world import Explorer, Location, StepResult
@@ -152,10 +153,14 @@ class OverworldScene(Scene):
         self.notification_timer = duration
 
     def save_game(self) -> bool:
+        """Save to disk. Returns False (and keeps the old save) if writing fails."""
         state = self.engine.game_state
         state.location = self.explorer.location
         state.facing = self.explorer.facing
-        return SaveManager.save_game(state, self.engine.save_path)
+        try:
+            return SaveManager.save_game(state, self.engine.save_path)
+        except SaveError:
+            return False
 
     def respawn_after_blackout(self, money_lost: int) -> None:
         """After a lost battle (party already healed by Trainer.black_out())."""

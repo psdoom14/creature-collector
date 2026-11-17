@@ -1,14 +1,18 @@
 """Sprite loader, cache manager, and retro pixel-art renderer."""
 import inspect
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+
 import pygame
 from src.ui.components import TYPE_COLORS
 
 SPRITES_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "sprites"
 CREATURES_JSON = Path(__file__).resolve().parent.parent.parent / "data" / "creatures.json"
 
+
+logger = logging.getLogger(__name__)
 
 class SpriteRenderer:
     """Manages creature sprite loading with two-tier caching and fallback."""
@@ -34,8 +38,8 @@ class SpriteRenderer:
                     cls._NAME_TO_ID[cname.lower()] = cid
                     if "types" in c and c["types"]:
                         cls._NAME_TO_TYPE[cname.lower()] = c["types"][0]
-            except Exception:
-                pass
+            except (OSError, ValueError, KeyError, TypeError) as e:
+                logger.warning("Could not read creature data for sprites: %s", e)
 
     @classmethod
     def get_creature_sprite(
@@ -91,8 +95,8 @@ class SpriteRenderer:
                     img = img.convert_alpha()
                 cls._master_cache[filename] = img
                 return img
-            except Exception:
-                pass
+            except (pygame.error, OSError) as e:
+                logger.warning("Could not load sprite %s: %s", filename, e)
         return None
 
     @classmethod

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Union
 
 from src.model.creature import Creature
 from src.model.events import BattleEvent, EventType
+from src.model.errors import GameDataError, RuleViolation
 
 if TYPE_CHECKING:
     from src.model.battle import Battle
@@ -70,7 +71,7 @@ class Item(ABC):
 
     def add_stock(self, amount: int) -> None:
         if amount < 0:
-            raise ValueError("Use consume() to remove stock")
+            raise RuleViolation("Stock can only go down through consume()")
         self._quantity += amount
 
     def consume(self) -> bool:
@@ -206,7 +207,7 @@ class ItemFactory:
         kind = data.get("type", "healing").lower()
         item_cls = cls._CLASSES.get(kind)
         if item_cls is None:
-            raise ValueError(f"Unknown item type '{kind}' for item '{data.get('id')}'")
+            raise GameDataError(f"Unknown item type '{kind}' for item '{data.get('id')}'")
         return item_cls(
             item_id=data["id"],
             name=data["name"],

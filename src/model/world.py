@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from src.model.direction import Direction
 from src.model.entities import Interactable, Interaction
+from src.model.errors import GameDataError, UnknownIdError
 
 __all__ = ["Direction", "Location", "TileKind", "TILE_KINDS", "Warp", "WorldMap", "World",
            "Explorer", "StepResult"]
@@ -86,11 +87,11 @@ class WorldMap:
                  entities: Iterable[Interactable] = (), encounter_table: Optional[str] = None,
                  encounter_rate: float = 0.0):
         if not tiles or any(len(row) != len(tiles[0]) for row in tiles):
-            raise ValueError(f"Map '{map_id}' rows must all be the same length")
+            raise GameDataError(f"Map '{map_id}' rows must all be the same length")
         for row in tiles:
             for name_ in row:
                 if name_ not in TILE_KINDS:
-                    raise ValueError(f"Map '{map_id}' uses unknown tile '{name_}'")
+                    raise GameDataError(f"Map '{map_id}' uses unknown tile '{name_}'")
         self._id = map_id
         self._name = name
         self._tiles = [list(row) for row in tiles]
@@ -167,7 +168,7 @@ class WorldMap:
             tile_row = []
             for x, ch in enumerate(row):
                 if ch not in legend:
-                    raise ValueError(f"Map '{data['id']}' has unknown character {ch!r} at ({x}, {y})")
+                    raise GameDataError(f"Map '{data['id']}' has unknown character {ch!r} at ({x}, {y})")
                 tile_row.append(legend[ch])
             tiles.append(tile_row)
         warps = [Warp(w["x"], w["y"], Location(w["to"], w["tx"], w["ty"]),
@@ -197,7 +198,7 @@ class World:
         try:
             return self._maps[map_id]
         except KeyError:
-            raise KeyError(f"No map with id '{map_id}'") from None
+            raise UnknownIdError("map", map_id) from None
 
 
 @dataclass(frozen=True)

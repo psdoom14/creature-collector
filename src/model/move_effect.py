@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from src.model.events import BattleEvent, EventType
 from src.model.status import StatusCondition
+from src.model.errors import GameDataError
 
 if TYPE_CHECKING:
     from src.model.creature import Creature
@@ -56,7 +57,7 @@ class MoveEffect(ABC):
             return ChangeStat(key, chance, stat=key[len("stat_lower_"):], stages=-1)
         if key.startswith("stat_raise_"):
             return ChangeStat(key, chance, stat=key[len("stat_raise_"):], stages=+1, on_user=True)
-        raise ValueError(f"Unknown move effect '{key}'")
+        raise GameDataError(f"Unknown move effect '{key}'")
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} {self._key} {self._chance}%>"

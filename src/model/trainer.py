@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from src.model.bag import Bag
 from src.model.creature import Creature
 from src.model.item import Item
+from src.model.errors import RuleViolation
 
 
 class _CreatureCollection:
@@ -40,7 +41,7 @@ class Party(_CreatureCollection):
 
     def __init__(self, creatures: Optional[List[Creature]] = None):
         if creatures and len(creatures) > self.MAX_PARTY_SIZE:
-            raise ValueError(f"A party holds at most {self.MAX_PARTY_SIZE} creatures")
+            raise RuleViolation(f"A party holds at most {self.MAX_PARTY_SIZE} creatures")
         super().__init__(creatures)
 
     @property
@@ -125,7 +126,7 @@ class Trainer:
     def rename(self, name: str) -> None:
         name = name.strip()
         if not name:
-            raise ValueError("A trainer needs a name")
+            raise RuleViolation("A trainer needs a name")
         self._name = name
 
     @property

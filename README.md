@@ -4,7 +4,7 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![Pygame](https://img.shields.io/badge/Pygame-2.5%2B-green)
-![Tests](https://img.shields.io/badge/tests-136%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-149%20passing-brightgreen)
 
 **📘 The OOP write-up — the four pillars mapped to exact lines, design patterns and UML diagrams — is in [docs/OOP.md](docs/OOP.md).**
 
@@ -81,7 +81,7 @@ creature-collector/
 │   ├── ui/                 screens (pygame): one Scene subclass per screen
 │   ├── data_loader.py      builds model objects from data/ (factories)
 │   └── save_manager.py     JSON save files
-├── tests/                  136 tests, run headless
+├── tests/                  149 tests, run headless
 ├── scripts/capture_stages.py   regenerates the screenshots above
 └── docs/
     ├── OOP.md              the OOP design write-up with UML
@@ -98,7 +98,7 @@ Key rules the code follows:
 ## Tests
 
 ```bash
-python3 -m unittest discover tests        # 136 tests, about 1 second, no window needed
+python3 -m unittest discover tests        # 149 tests, about 1 second, no window needed
 python3 scripts/capture_stages.py          # refresh screenshots/
 ```
 

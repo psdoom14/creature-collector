@@ -160,5 +160,29 @@ class TestPolymorphism(_LoaderMixin, unittest.TestCase):
         self.assertEqual(kinds, [EventType.STATUS_APPLIED, EventType.HEAL, EventType.STAT_CHANGE])
 
 
+class TestDamageCalculator(_LoaderMixin, unittest.TestCase):
+    """The damage formula lives in its own class and takes an injectable random source."""
+
+    class FixedRolls(random.Random):
+        def randint(self, a, b):
+            return 1          # always hits
+        def random(self):
+            return 0.99       # never a critical hit
+        def uniform(self, a, b):
+            return 1.0        # no variance
+
+    def test_super_effective_hits_harder_and_immunity_does_nothing(self):
+        from src.model.damage import DamageCalculator
+        calc = DamageCalculator(self.chart, rng=self.FixedRolls())
+        charmander = self.loader.get_creature(4, 20)
+        ember = self.loader.get_move("ember")
+        vs_grass = calc.calculate(charmander, self.loader.get_creature(1, 20), ember)
+        vs_water = calc.calculate(charmander, self.loader.get_creature(7, 20), ember)
+        self.assertEqual(vs_grass.multiplier, 2.0)
+        self.assertGreater(vs_grass.damage, vs_water.damage)
+        ghost = self.loader.get_creature(92, 20)          # Gastly: Normal moves can't touch it
+        self.assertTrue(calc.calculate(charmander, ghost, self.loader.get_move("scratch")).no_effect)
+
+
 if __name__ == "__main__":
     unittest.main()

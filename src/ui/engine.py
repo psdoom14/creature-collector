@@ -9,6 +9,7 @@ from src.data_loader import DataLoader
 from src.model.game_state import GameState
 from src.model.trainer import Trainer, Party
 from src.model.pokedex import Pokedex
+from src.model.errors import SaveError
 from src.save_manager import SaveManager
 
 DEFAULT_SAVE_PATH = Path(__file__).resolve().parent.parent.parent / "savegame.json"
@@ -39,6 +40,7 @@ class GameEngine:
         self.world = self.data_loader.load_world()
         self.game_state: Optional[GameState] = None
         self.save_path = Path(save_path) if save_path else DEFAULT_SAVE_PATH
+        self.save_problem: Optional[str] = None
 
         self._init_default_game_state()
 
@@ -47,12 +49,18 @@ class GameEngine:
         return SaveManager.has_save(self.save_path)
 
     def peek_save(self) -> Optional[GameState]:
-        """Load the save file without making it current (for the title screen summary)."""
+        """Load the save file without making it current (for the title screen summary).
+
+        Returns None if there is no usable save; ``save_problem`` then explains why
+        (None when there simply is no save file).
+        """
+        self.save_problem = None
         if not self.has_save():
             return None
         try:
             return SaveManager.load_game(self.save_path, self.data_loader)
-        except (OSError, ValueError, KeyError):
+        except SaveError as e:
+            self.save_problem = str(e)
             return None
 
     def new_game(self) -> None:

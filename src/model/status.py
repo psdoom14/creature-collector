@@ -7,6 +7,7 @@ what happens at the end of a turn and how it changes speed and catch odds.
 import random
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Type
+from src.model.errors import GameDataError
 
 if TYPE_CHECKING:
     from src.model.creature import Creature
@@ -35,7 +36,7 @@ class StatusCondition(ABC):
         try:
             return cls._registry[key.lower()]()
         except KeyError:
-            raise ValueError(f"Unknown status condition '{key}'") from None
+            raise GameDataError(f"Unknown status condition '{key}'") from None
 
     @classmethod
     def known_keys(cls) -> Tuple[str, ...]:

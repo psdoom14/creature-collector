@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence, Tuple, Type
 
 from src.model.direction import Direction
+from src.model.errors import GameDataError
 
 if TYPE_CHECKING:
     from src.model.battle import TrainerBattle
@@ -86,7 +87,7 @@ class Interactable(ABC):
         kind = data.get("kind", "")
         sub = cls._registry.get(kind)
         if sub is None:
-            raise ValueError(f"Unknown entity kind '{kind}'")
+            raise GameDataError(f"Unknown entity kind '{kind}'")
         return sub._from_data(data)
 
     @classmethod

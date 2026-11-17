@@ -10,6 +10,7 @@ from src.model.creature import Creature, CreatureFactory
 from src.model.item import Item, ItemFactory
 from src.model.direction import Direction
 from src.model.world import Location, World, WorldMap
+from src.model.errors import UnknownIdError
 
 
 class DataLoader:
@@ -97,7 +98,7 @@ class DataLoader:
     def get_move(self, move_id: str) -> Move:
         """Instantiate a Move object from move_id."""
         if move_id not in self._raw_moves:
-            raise KeyError(f"Move with id '{move_id}' not found in moves.json")
+            raise UnknownIdError("move", move_id, "moves.json")
         return MoveFactory.from_json(self._raw_moves[move_id])
 
     def get_species_data(self, species_id: int) -> Optional[Dict[str, Any]]:
@@ -119,7 +120,7 @@ class DataLoader:
             data = self._raw_creatures_by_name.get(str(identifier).lower())
 
         if not data:
-            raise KeyError(f"Creature with identifier '{identifier}' not found in creatures.json")
+            raise UnknownIdError("creature", identifier, "creatures.json")
 
         # Determine moves learned up to this level (take last 4)
         learned_move_ids: List[str] = []
@@ -143,7 +144,7 @@ class DataLoader:
     def get_item(self, item_id: str, quantity: int = 1) -> Item:
         """Instantiate an Item object with given quantity."""
         if item_id not in self._raw_items:
-            raise KeyError(f"Item '{item_id}' not found in items.json")
+            raise UnknownIdError("item", item_id, "items.json")
         return ItemFactory.from_json(self._raw_items[item_id], quantity=quantity)
 
     def get_wild_encounter(self, route_name: str) -> Optional[Creature]:

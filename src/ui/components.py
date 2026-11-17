@@ -78,8 +78,8 @@ def get_font(size: int = 10, font_name: Optional[str] = None) -> pygame.font.Fon
                 f = pygame.font.Font(str(p), size)
                 _FONT_CACHE[key] = f
                 return f
-            except Exception:
-                pass
+            except (pygame.error, OSError):
+                pass  # unreadable font file: try the next candidate
 
     # Fallback to retro system fonts
     try:
@@ -89,14 +89,14 @@ def get_font(size: int = 10, font_name: Optional[str] = None) -> pygame.font.Fon
                 f = pygame.font.Font(matched, size)
                 _FONT_CACHE[key] = f
                 return f
-    except Exception:
-        pass
+    except (pygame.error, OSError, ImportError, AttributeError):
+        pass  # system font lookup unavailable (seen with pygame.sysfont on Python 3.14)
 
     try:
         f = pygame.font.SysFont(None, size)
         _FONT_CACHE[key] = f
         return f
-    except Exception:
+    except (pygame.error, OSError, ImportError, AttributeError):
         f = pygame.font.Font(None, size)
         _FONT_CACHE[key] = f
         return f
@@ -189,7 +189,8 @@ def draw_crisp_text(
         text_surf = font.render(text, False, color)
         surface.blit(text_surf, (x, y))
         return text_surf.get_rect(topleft=(x, y))
-    except Exception:
+    except (pygame.error, AttributeError):
+        # Font rendering unavailable: fall back to the embedded bitmap font
         return draw_bitmap_text(surface, text, x, y, color=color, shadow_color=shadow_color)
 
 

@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from src.model.move_effect import MoveEffect
+from src.model.errors import GameDataError
 
 if TYPE_CHECKING:
     from src.model.creature import Creature
@@ -174,7 +175,7 @@ class MoveFactory:
         category = data.get("category", "physical").lower()
         move_cls = cls._CLASSES.get(category)
         if move_cls is None:
-            raise ValueError(f"Unknown move category '{category}' for move '{data.get('id')}'")
+            raise GameDataError(f"Unknown move category '{category}' for move '{data.get('id')}'")
         return move_cls(
             move_id=data["id"],
             name=data["name"],

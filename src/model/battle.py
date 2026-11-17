@@ -26,16 +26,14 @@ from typing import Callable, Iterable, List, Optional, Sequence, Tuple
 
 from src.model.battle_ai import BattleAI, RandomAI
 from src.model.creature import Creature
+from src.model.damage import DamageCalculator, DamageResult
 from src.model.events import BattleEvent, EventType
 from src.model.move import Move
 from src.model.trainer import Trainer
 from src.model.type_chart import TypeChart
+from src.model.errors import RuleViolation
 
 __all__ = ["Battle", "WildBattle", "TrainerBattle", "GymBattle", "BattleState", "BattleEvent", "EventType"]
-
-CRIT_CHANCE = 0.0625
-CRIT_MULTIPLIER = 1.5
-STAB_MULTIPLIER = 1.5
 
 MoveSource = Callable[[str], Move]
 
@@ -67,6 +65,7 @@ class Battle(ABC):
         self._player = player
         self._opponent = opponent
         self._type_chart = type_chart
+        self._damage = DamageCalculator(type_chart)
         self._ai = ai or RandomAI()
         self._move_source = move_source
         self._state = BattleState.SELECTING_ACTION
@@ -284,23 +283,9 @@ class Battle(ABC):
     # ------------------------------------------------------------------
     # Damage
     # ------------------------------------------------------------------
-    def calculate_damage(self, attacker: Creature, defender: Creature, move: Move) -> dict:
-        """Roll accuracy, crit and variance, and compute damage for ``move``."""
-        if not move.is_damaging() or move.power <= 0:
-            return {"damage": 0, "multiplier": 1.0, "is_crit": False, "hit": True}
-        if random.randint(1, 100) > move.accuracy:
-            return {"damage": 0, "multiplier": 1.0, "is_crit": False, "hit": False}
-
-        atk = move.attack_stat(attacker)
-        dfn = move.defense_stat(defender)
-        is_crit = random.random() < CRIT_CHANCE
-        base = ((2 * attacker.level / 5 + 2) * move.power * (atk / max(1, dfn))) / 50 + 2
-        stab = STAB_MULTIPLIER if move.type in attacker.types else 1.0
-        type_mult = self._type_chart.get_effectiveness(move.type, list(defender.types))
-        crit = CRIT_MULTIPLIER if is_crit else 1.0
-        damage = int(base * stab * type_mult * crit * random.uniform(0.85, 1.0))
-        damage = max(1, damage) if type_mult > 0 else 0
-        return {"damage": damage, "multiplier": type_mult, "is_crit": is_crit, "hit": True}
+    def calculate_damage(self, attacker: Creature, defender: Creature, move: Move) -> DamageResult:
+        """Delegates to the DamageCalculator (kept separate: Single Responsibility)."""
+        return self._damage.calculate(attacker, defender, move)
 
     # ------------------------------------------------------------------
     # Internals
@@ -368,25 +353,25 @@ class Battle(ABC):
                                    "move": move.name, "type": move.type}))
 
         calc = self.calculate_damage(user, target, move)
-        if not calc["hit"]:
+        if not calc.hit:
             events.append(BattleEvent(EventType.MISSED, f"{user.name}'s attack missed!",
                                       {"user": user.name, "target": target.name}))
             return events
-        if calc["multiplier"] == 0.0:
+        if calc.no_effect:
             events.append(BattleEvent(EventType.NO_EFFECT, f"It had no effect on {target.name}!",
                                       {"target": target.name}))
             return events
 
-        if calc["damage"] > 0:
-            lost = target.take_damage(calc["damage"])
+        if calc.damage > 0:
+            lost = target.take_damage(calc.damage)
             events.append(BattleEvent(EventType.DAMAGE_DEALT, f"{target.name} took {lost} damage!",
                                       {**self._hp_data(target), "damage": lost}))
-            if calc["is_crit"]:
+            if calc.is_crit:
                 events.append(BattleEvent(EventType.CRITICAL, "A critical hit!"))
-            eff_msg = self._type_chart.get_effectiveness_message(calc["multiplier"])
+            eff_msg = self._type_chart.get_effectiveness_message(calc.multiplier)
             if eff_msg:
                 events.append(BattleEvent(EventType.EFFECTIVENESS, eff_msg,
-                                          {"multiplier": calc["multiplier"]}))
+                                          {"multiplier": calc.multiplier}))
 
         if move.effect and not target.is_fainted:
             effect_events = move.effect.apply(user, target) if move.effect.triggers() else []
@@ -513,7 +498,7 @@ class TrainerBattle(Battle):
         move_source: Optional[MoveSource] = None,
     ):
         if not opponent_party:
-            raise ValueError("A trainer needs at least one creature")
+            raise RuleViolation("A trainer needs at least one creature")
         super().__init__(player, opponent_party[0], type_chart, ai, move_source)
         self._reserve: List[Creature] = list(opponent_party[1:])
         self._trainer_name = trainer_name

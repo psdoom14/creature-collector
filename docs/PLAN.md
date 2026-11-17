@@ -165,3 +165,8 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - `grep -rn pygame src/model/` stays at 0.
 - Game data lives in `data/*.json`, never hard-coded in classes.
 - Every phase adds tests; nothing merges with a red suite.
+
+**Course-requirement gaps closed (2026-11-17).** 149 tests pass (+13).
+- Exception handling: new `src/model/errors.py` hierarchy (`GameError` → `GameDataError`/`UnknownIdError`, `RuleViolation`, `SaveError` → `SaveNotFoundError`/`CorruptSaveError`/`SaveWriteError`), each also inheriting the matching built-in. All 17 plain `raise ValueError/KeyError` replaced; every `except Exception` narrowed. Saves are versioned and written atomically (temp file + `os.replace`); damaged saves raise `CorruptSaveError` with the cause attached instead of crashing or silently dropping creatures. The title screen says when a save is damaged; the overworld says "Save failed!".
+- SRP: the damage formula moved from `Battle` into `DamageCalculator` (`src/model/damage.py`) with an injectable random source.
+- docs/OOP.md: new sections on classes/objects/constructors, association vs aggregation vs composition, SOLID (with honest caveats), and exception handling; plus use-case, two sequence, two activity and a state diagram (11 Mermaid diagrams in total, all checked to render).

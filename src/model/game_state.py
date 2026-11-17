@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 from src.model.bag import Bag
 from src.model.badges import BadgeCase
 from src.model.direction import Direction
+from src.model.errors import UnknownIdError
 from src.model.creature import CreatureFactory
 from src.model.item import ItemFactory
 from src.model.move import MoveFactory
@@ -84,7 +85,8 @@ class GameState:
     def _creature_from_dict(c_dict: Dict[str, Any], data_loader: Any):
         species_data = data_loader.get_species_data(c_dict["species_id"])
         if not species_data:
-            return None
+            # Don't silently drop a creature from the player's team: report it.
+            raise UnknownIdError("species", c_dict["species_id"], "the save file")
         return CreatureFactory.create(
             species_data=species_data,
             level=c_dict.get("level", 5),
@@ -100,7 +102,7 @@ class GameState:
         t = data.get("trainer", {})
 
         def load_all(dicts):
-            return [c for c in (cls._creature_from_dict(d, data_loader) for d in dicts) if c]
+            return [cls._creature_from_dict(d, data_loader) for d in dicts]
 
         bag = Bag([ItemFactory.from_json(d, quantity=d.get("quantity", 1))
                    for d in t.get("inventory", [])])

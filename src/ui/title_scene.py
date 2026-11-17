@@ -3,7 +3,9 @@ import math
 
 import pygame
 
-from src.ui.components import MenuBox, draw_crisp_text, draw_fitted_text, draw_gba_panel, get_font, small_font
+from src.ui.components import (
+    MenuBox, draw_crisp_text, draw_fitted_text, draw_gba_panel, get_font, small_font, wrap_text,
+)
 from src.ui.scene import Scene
 from src.ui.sprite_renderer import SpriteRenderer
 
@@ -25,6 +27,8 @@ class TitleScene(Scene):
         self.timer = 0.0
         self.stage = "PRESS_START"
         self.saved = engine.peek_save()
+        # Shown when a save file exists but can't be loaded
+        self.warning = "Your save file is damaged and can't be loaded." if engine.save_problem else ""
         self.options = (["CONTINUE"] if self.saved else []) + ["NEW GAME", "QUIT"]
         self.menu = MenuBox(pygame.Rect(8, 70, 96, 14 * len(self.options) + 10), self.options)
 
@@ -102,5 +106,11 @@ class TitleScene(Scene):
         else:
             self.menu.draw(surface)
             self._draw_save_summary(surface)
+            if self.warning:
+                box = pygame.Rect(110, 70, 126, 46)
+                draw_gba_panel(surface, box)
+                for i, line in enumerate(wrap_text(self.warning, box.width - 12, self.font_sm)[:3]):
+                    draw_fitted_text(surface, line, box.x + 6, box.y + 5 + i * 12, box.width - 12,
+                                     self.font_sm, color=(184, 40, 32))
             draw_fitted_text(surface, "Z: SELECT   X: BACK", 0, 146, 240, self.font_sm,
                              color=(248, 248, 248), shadow_color=(32, 32, 48), align="center")
