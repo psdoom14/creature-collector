@@ -38,6 +38,10 @@ class MoveEffect(ABC):
     def apply(self, user: "Creature", target: "Creature") -> List[BattleEvent]:
         """Perform the effect. Returns events; an empty list means nothing happened."""
 
+    def ai_score(self, user: "Creature", target: "Creature") -> float:
+        """How much a computer opponent wants this effect right now (compare: a 40-power hit ~ 40)."""
+        return 15.0
+
     @staticmethod
     def from_data(key: Optional[str], chance: int = 0) -> Optional["MoveEffect"]:
         """Factory: build the right effect for a moves.json ``effect`` string."""
@@ -61,6 +65,11 @@ class MoveEffect(ABC):
 class InflictStatus(MoveEffect):
     """Gives the target a status condition, unless it is immune or already has one."""
 
+    def ai_score(self, user: "Creature", target: "Creature") -> float:
+        if target.status is not None or not StatusCondition.create(self.key).can_afflict(target):
+            return 0.5
+        return 35.0
+
     def apply(self, user: "Creature", target: "Creature") -> List[BattleEvent]:
         status = StatusCondition.create(self.key)
         if not target.apply_status(status):
@@ -75,6 +84,10 @@ class InflictStatus(MoveEffect):
 class HealUser(MoveEffect):
     """Restores half of the user's max HP."""
     FRACTION = 0.5
+
+    def ai_score(self, user: "Creature", target: "Creature") -> float:
+        missing = 1 - user.current_hp / max(1, user.max_hp)
+        return 80.0 * missing  # worthless at full HP, very attractive when low
 
     def apply(self, user: "Creature", target: "Creature") -> List[BattleEvent]:
         healed = user.heal(int(user.max_hp * self.FRACTION))

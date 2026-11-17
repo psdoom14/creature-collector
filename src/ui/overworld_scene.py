@@ -11,11 +11,13 @@ from typing import List, Optional, Tuple
 import pygame
 
 from src.model.direction import Direction
-from src.model.entities import StarterBall
+from src.model.battle import TrainerBattle, BattleState
+from src.model.entities import StarterBall, TrainerNPC
 from src.model.story import give_starter, pick_rival_starter
 from src.model.world import Explorer, Location, StepResult
 from src.save_manager import SaveManager
 from src.ui.bag_scene import BagScene
+from src.ui.card_scene import CardScene
 from src.ui.battle_scene import BattleScene
 from src.ui.components import (
     MenuBox, TextBox, draw_fitted_text, draw_gba_panel, get_font, small_font, wrap_text,
@@ -42,7 +44,9 @@ MOVE_KEYS = {
 
 class OverworldScene(Scene):
     """Modes: WALK (free movement), DIALOGUE (text box open), MENU (pause menu open),
-    CONFIRM_STARTER (YES/NO over a starter ball)."""
+    CONFIRM_STARTER (YES/NO over a starter ball), SPOTTED (a trainer just saw you: "!")."""
+
+    SPOTTED_SECONDS = 0.7
 
     STEP_SECONDS = 0.20
     FADE_SECONDS = 0.18
@@ -76,11 +80,16 @@ class OverworldScene(Scene):
         self.water_timer = 0.0
         self.water_frame = 0
 
-        self.pause_menu = MenuBox(pygame.Rect(150, 8, 84, 88), ["POKÉDEX", "PARTY", "BAG", "SAVE", "EXIT"])
+        self.pause_menu = MenuBox(pygame.Rect(150, 8, 84, 88),
+                                  ["POKÉDEX", "PARTY", "BAG", "CARD", "SAVE", "EXIT"])
         self.textbox = TextBox(pygame.Rect(4, 110, 232, 46))
         self.dialogue: List[str] = []
         self.starter_menu = MenuBox(pygame.Rect(180, 64, 56, 42), ["YES", "NO"])
         self.offered_species: Optional[int] = None
+        # Something to do when the current dialogue closes (e.g. start a trainer battle)
+        self._after_dialogue = None
+        self.spotter: Optional[TrainerNPC] = None
+        self.spotted_timer = 0.0
 
         self.notification_text: Optional[str] = None
         self.notification_timer = 0.0
@@ -174,6 +183,8 @@ class OverworldScene(Scene):
                 self._advance_dialogue()
         elif self.mode == "CONFIRM_STARTER":
             self._handle_starter_key(key)
+        elif self.mode == "SPOTTED":
+            return
         elif self.mode == "MENU":
             self._handle_menu_key(key)
         elif key in MOVE_KEYS:
@@ -201,8 +212,10 @@ class OverworldScene(Scene):
         elif choice == 2:
             self.engine.push_scene(BagScene(self.engine))
         elif choice == 3:
+            self.engine.push_scene(CardScene(self.engine))
+        elif choice == 4:
             self.show_notification("Game saved!" if self.save_game() else "Save failed!")
-        # choice 4 (EXIT) just closes the menu
+        # choice 5 (EXIT) just closes the menu
 
     # ------------------------------------------------------------------
     # Walking
@@ -237,15 +250,19 @@ class OverworldScene(Scene):
                 self.held_direction = None
                 self.engine.push_scene(BattleScene(self.engine, wild))
                 return
+        if self._check_spotted():
+            return
         if self.held_direction and self.mode == "WALK":
             self._try_step(self.held_direction)
 
     # ------------------------------------------------------------------
     # Talking
     # ------------------------------------------------------------------
-    def _open_dialogue(self, lines) -> None:
+    def _open_dialogue(self, lines, then=None) -> None:
+        """Show ``lines``; call ``then()`` when the player closes the last one."""
         self.held_direction = None
         self.dialogue = list(lines)
+        self._after_dialogue = then
         self.mode = "DIALOGUE"
         self.textbox.set_message(self.dialogue.pop(0) if self.dialogue else "...")
 
@@ -266,7 +283,36 @@ class OverworldScene(Scene):
         elif result.effect == "offer_starter":
             self._offer_starter(result.data["species_id"])
             return
+        elif result.effect == "start_battle":
+            trainer = result.data["trainer"]
+            self._open_dialogue(lines, then=lambda: self._start_trainer_battle(trainer))
+            return
         self._open_dialogue(lines)
+
+    # ------------------------------------------------------------------
+    # Trainers
+    # ------------------------------------------------------------------
+    def _check_spotted(self) -> bool:
+        """After moving: if a trainer sees the player, freeze and show "!"."""
+        spotter = self.explorer.spotted_by(self.engine.game_state)
+        if spotter is None:
+            return False
+        self.spotter = spotter
+        self.spotted_timer = self.SPOTTED_SECONDS
+        self.held_direction = None
+        self.mode = "SPOTTED"
+        return True
+
+    def _start_trainer_battle(self, trainer: TrainerNPC) -> None:
+        loader, state = self.engine.data_loader, self.engine.game_state
+        battle = trainer.build_battle(state, loader.get_type_chart(), loader.get_creature, loader.get_move)
+        state.pokedex.register_seen(battle.opponent.species_id)
+        self.engine.push_scene(BattleScene(self.engine, battle.opponent, battle=battle))
+
+    def on_battle_end(self, battle) -> None:
+        """Called by the battle scene when a battle the player didn't lose is over."""
+        if isinstance(battle, TrainerBattle) and battle.state is BattleState.WON:
+            self._open_dialogue(battle.defeat_lines)
 
     # ------------------------------------------------------------------
     # Choosing a starter
@@ -314,6 +360,9 @@ class OverworldScene(Scene):
             self.textbox.set_message(self.dialogue.pop(0))
         else:
             self.mode = "WALK"
+            then, self._after_dialogue = self._after_dialogue, None
+            if then:
+                then()
 
     # ------------------------------------------------------------------
     # Update / draw
@@ -332,6 +381,14 @@ class OverworldScene(Scene):
 
         self.textbox.update(dt)
 
+        if self.mode == "SPOTTED":
+            self.spotted_timer -= dt
+            if self.spotted_timer <= 0:
+                trainer, self.spotter = self.spotter, None
+                trainer.turn_to(self._direction_from(trainer).opposite)
+                challenge = trainer.challenge()
+                self._open_dialogue(challenge.lines, then=lambda: self._start_trainer_battle(trainer))
+
         if self.fade_dir:
             self.fade += self.fade_dir * dt / self.FADE_SECONDS
             if self.fade_dir > 0 and self.fade >= 1.0:
@@ -341,6 +398,7 @@ class OverworldScene(Scene):
                     self._on_map_changed()
             elif self.fade_dir < 0 and self.fade <= 0.0:
                 self.fade, self.fade_dir = 0.0, 0
+                self._check_spotted()
 
         if self.step_from is not None:
             self.step_timer += dt
@@ -348,6 +406,14 @@ class OverworldScene(Scene):
             self.walk_frame = (1, 0, 2, 0)[min(3, int(progress * 4))]
             if progress >= 1.0:
                 self._finish_step()
+
+    def _direction_from(self, entity) -> Direction:
+        """Direction pointing from the player towards ``entity``."""
+        loc = self.explorer.location
+        dx, dy = entity.x - loc.x, entity.y - loc.y
+        if abs(dx) >= abs(dy):
+            return Direction.RIGHT if dx > 0 else Direction.LEFT
+        return Direction.DOWN if dy > 0 else Direction.UP
 
     def _player_pixel_pos(self) -> Tuple[float, float]:
         loc = self.explorer.location
@@ -384,6 +450,9 @@ class OverworldScene(Scene):
         loc = self.explorer.location
         if world_map.tile_at(loc.x, loc.y).encounters:
             self.renderer.draw_grass_overlay(surface, px, py, cam)
+
+        if self.mode == "SPOTTED" and self.spotter is not None:
+            self._draw_exclamation(surface, self.spotter, cam)
 
         self._draw_hud(surface)
         if not self._pending_map_change:
@@ -438,3 +507,12 @@ class OverworldScene(Scene):
         self.textbox.draw(surface)
         if self.textbox.is_finished_typing:
             self.starter_menu.draw(surface)
+
+    def _draw_exclamation(self, surface: pygame.Surface, entity, cam) -> None:
+        x = entity.x * TILE - cam[0] + 3
+        y = entity.y * TILE - cam[1] - 18
+        bubble = pygame.Rect(x, y, 10, 12)
+        pygame.draw.rect(surface, (248, 248, 248), bubble, border_radius=3)
+        pygame.draw.rect(surface, (40, 40, 48), bubble, 1, border_radius=3)
+        pygame.draw.rect(surface, (216, 48, 32), (x + 4, y + 2, 2, 5))
+        pygame.draw.rect(surface, (216, 48, 32), (x + 4, y + 8, 2, 2))

@@ -60,6 +60,14 @@
       "tx": 5,
       "ty": 6,
       "facing": "up"
+    },
+    {
+      "x": 16,
+      "y": 5,
+      "to": "brookhaven_gym",
+      "tx": 5,
+      "ty": 9,
+      "facing": "up"
     }
   ],
   "entities": [
@@ -78,8 +86,7 @@
       "y": 6,
       "lines": [
         "BROOKHAVEN GYM",
-        "The gym is closed for now.",
-        "Come back later!"
+        "Leader: WREN, the high-flying skywatcher!"
       ]
     },
     {

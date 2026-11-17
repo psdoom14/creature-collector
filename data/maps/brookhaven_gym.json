@@ -1,0 +1,113 @@
+{
+  "id": "brookhaven_gym",
+  "name": "Brookhaven Gym",
+  "legend": {
+    "#": "wall",
+    "M": "mat",
+    "_": "floor",
+    "p": "plant"
+  },
+  "rows": [
+    "###########",
+    "#p_______p#",
+    "#_________#",
+    "#_#_____#_#",
+    "#_________#",
+    "#_________#",
+    "#_________#",
+    "#_#_____#_#",
+    "#_________#",
+    "#p_______p#",
+    "####MMM####"
+  ],
+  "warps": [
+    {
+      "x": 4,
+      "y": 10,
+      "to": "brookhaven_city",
+      "tx": 16,
+      "ty": 6,
+      "facing": "down"
+    },
+    {
+      "x": 5,
+      "y": 10,
+      "to": "brookhaven_city",
+      "tx": 16,
+      "ty": 6,
+      "facing": "down"
+    },
+    {
+      "x": 6,
+      "y": 10,
+      "to": "brookhaven_city",
+      "tx": 16,
+      "ty": 6,
+      "facing": "down"
+    }
+  ],
+  "entities": [
+    {
+      "kind": "trainer",
+      "id": "gym_kit",
+      "x": 5,
+      "y": 5,
+      "name": "KIT",
+      "title": "GYM TRAINER",
+      "facing": "down",
+      "palette": "orange",
+      "sight": 3,
+      "party": [
+        [
+          16,
+          7
+        ]
+      ],
+      "prize": 150,
+      "lines": [
+        "KIT: You want to fly as high as WREN? Get past me first!"
+      ],
+      "defeat_lines": [
+        "KIT: Grounded... WREN is much stronger than me."
+      ],
+      "after_lines": [
+        "KIT: WREN's birds are fast. Grass types struggle against them."
+      ]
+    },
+    {
+      "kind": "gym_leader",
+      "id": "gym_wren",
+      "x": 5,
+      "y": 1,
+      "name": "WREN",
+      "title": "LEADER",
+      "facing": "down",
+      "palette": "green",
+      "party": [
+        [
+          16,
+          8
+        ],
+        [
+          17,
+          10
+        ]
+      ],
+      "prize": 1000,
+      "badge": "GALE BADGE",
+      "lines": [
+        "WREN: Welcome to Brookhaven Gym! I'm WREN, the leader here.",
+        "WREN: My birds ride the wind. Can your creatures keep up?",
+        "WREN: Show me what you've got!"
+      ],
+      "defeat_lines": [
+        "WREN: What a battle! You've earned this.",
+        "WREN: Take the GALE BADGE as proof that you beat me."
+      ],
+      "after_lines": [
+        "WREN: The GALE BADGE suits you!",
+        "That's the end of this demo. Thanks for playing!"
+      ]
+    }
+  ]
+}

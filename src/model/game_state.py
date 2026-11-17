@@ -2,6 +2,7 @@
 from typing import Any, Dict, Optional
 
 from src.model.bag import Bag
+from src.model.badges import BadgeCase
 from src.model.direction import Direction
 from src.model.creature import CreatureFactory
 from src.model.item import ItemFactory
@@ -21,7 +22,7 @@ class GameState:
         pokedex: Optional[Pokedex] = None,
         current_route: str = "Route 1",
         play_time: float = 0.0,
-        badges: int = 0,
+        badges=0,
         location: Optional[Location] = None,
         facing: Direction = Direction.DOWN,
         respawn_location: Optional[Location] = None,
@@ -32,7 +33,10 @@ class GameState:
         self.pokedex = pokedex or Pokedex()
         self.current_route = current_route
         self._play_time = max(0.0, play_time)
-        self.badges = badges
+        # ``badges`` may be a count (older saves/tests) or a list of badge names.
+        if isinstance(badges, int):
+            badges = [f"BADGE {i + 1}" for i in range(badges)]
+        self.badge_case = BadgeCase(badges)
         #: Where the player stands (None = the world's start location).
         self.location: Optional[Location] = location
         self.facing: Direction = facing
@@ -42,6 +46,11 @@ class GameState:
         self.flags: StoryFlags = flags or StoryFlags()
         #: Species the rival chose (None until the player picks a starter).
         self.rival_starter: Optional[int] = rival_starter
+
+    @property
+    def badges(self) -> int:
+        """Number of badges earned."""
+        return self.badge_case.count
 
     @property
     def play_time(self) -> float:
@@ -63,7 +72,7 @@ class GameState:
             "pokedex": self.pokedex.to_dict(),
             "current_route": self.current_route,
             "play_time": self._play_time,
-            "badges": self.badges,
+            "badges": self.badge_case.to_list(),
             "location": self.location.to_dict() if self.location else None,
             "facing": self.facing.key,
             "respawn_location": self.respawn_location.to_dict() if self.respawn_location else None,

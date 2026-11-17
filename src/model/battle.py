@@ -1,10 +1,13 @@
 """Turn-based battle engine.
 
     Battle (abstract)      all the turn rules
-    └── WildBattle         you may run and throw balls
+    ├── WildBattle         you may run and throw balls
+    └── TrainerBattle      no running or catching; the trainer sends out their next
+        │                  creature, pays prize money and remembers being beaten
+        └── GymBattle      ...and awards a badge
 
-A later ``TrainerBattle`` / ``GymBattle`` only has to override the hooks
-(``can_flee``, ``can_catch``, ``intro_message``, ``_victory_message``).
+Subclasses only override hooks: ``can_flee``, ``can_catch``, ``intro_message``,
+``_on_opponent_fainted()``, ``_xp_multiplier`` and ``_victory_extras()``.
 
 ``Battle`` never draws or prints anything. Each action returns a list of
 ``BattleEvent`` objects that the UI plays back. It relies on polymorphism
@@ -19,7 +22,7 @@ instead of type checks:
 import random
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Sequence, Tuple
 
 from src.model.battle_ai import BattleAI, RandomAI
 from src.model.creature import Creature
@@ -28,7 +31,7 @@ from src.model.move import Move
 from src.model.trainer import Trainer
 from src.model.type_chart import TypeChart
 
-__all__ = ["Battle", "WildBattle", "BattleState", "BattleEvent", "EventType"]
+__all__ = ["Battle", "WildBattle", "TrainerBattle", "GymBattle", "BattleState", "BattleEvent", "EventType"]
 
 CRIT_CHANCE = 0.0625
 CRIT_MULTIPLIER = 1.5
@@ -94,8 +97,13 @@ class Battle(ABC):
         """Text shown when the battle starts."""
 
     @abstractmethod
-    def _victory_message(self) -> str:
-        """Text shown when the opponent is defeated."""
+    def _on_opponent_fainted(self) -> List[BattleEvent]:
+        """The current opponent fainted: end the battle or bring out the next one."""
+
+    @property
+    def _xp_multiplier(self) -> float:
+        """Bonus XP for this kind of battle (trainers give more than wild creatures)."""
+        return 1.0
 
     # ------------------------------------------------------------------
     # Read-only state
@@ -409,24 +417,26 @@ class Battle(ABC):
     def _resolve_faints(self) -> List[BattleEvent]:
         """After damage: decide whether the battle is won, lost, or needs a switch."""
         mine = self._active
+        events: List[BattleEvent] = []
         if self._opponent.is_fainted:
-            self._state = BattleState.WON
-            return self._award_victory_xp(mine) + [
-                BattleEvent(EventType.BATTLE_WON, self._victory_message())]
+            events += self._award_victory_xp(mine)
+            events += self._on_opponent_fainted()   # polymorphic: wild vs trainer
+            if not self.is_active:
+                return events
         if mine is not None and mine.is_fainted:
             if self._player.party.all_fainted():
                 self._state = BattleState.LOST
                 return [BattleEvent(EventType.BATTLE_LOST,
                                     f"{self._player.name} is out of usable creatures! You blacked out!")]
             self._state = BattleState.SELECTING_SWITCH
-            return [BattleEvent(EventType.CHOOSE_NEXT, "Choose the next creature!")]
-        return []
+            return events + [BattleEvent(EventType.CHOOSE_NEXT, "Choose the next creature!")]
+        return events
 
     def _award_victory_xp(self, winner: Optional[Creature]) -> List[BattleEvent]:
         if winner is None or winner.is_fainted:
             return []
         foe = self._opponent
-        xp = max(1, int(foe.base_xp * foe.level / 7))
+        xp = max(1, int(foe.base_xp * foe.level / 7 * self._xp_multiplier))
         events = [BattleEvent(EventType.XP_GAINED, f"{winner.name} gained {xp} EXP. Points!",
                               {"creature": winner.name, "uid": winner.uid, "xp": xp})]
         result = winner.gain_xp(xp)
@@ -475,5 +485,108 @@ class WildBattle(Battle):
     def intro_message(self) -> str:
         return f"Wild {self._opponent.name} appeared!"
 
-    def _victory_message(self) -> str:
-        return f"Defeated wild {self._opponent.name}!"
+    def _on_opponent_fainted(self) -> List[BattleEvent]:
+        self._state = BattleState.WON
+        return [BattleEvent(EventType.BATTLE_WON, f"Defeated wild {self._opponent.name}!")]
+
+
+class TrainerBattle(Battle):
+    """A battle against another trainer's team, one creature at a time."""
+
+    def __init__(
+        self,
+        player: Trainer,
+        opponent_party: Sequence[Creature],
+        type_chart: TypeChart,
+        trainer_name: str,
+        trainer_title: str = "TRAINER",
+        prize: int = 0,
+        defeat_lines: Iterable[str] = (),
+        flags=None,
+        defeat_flag: Optional[str] = None,
+        ai: Optional[BattleAI] = None,
+        move_source: Optional[MoveSource] = None,
+    ):
+        if not opponent_party:
+            raise ValueError("A trainer needs at least one creature")
+        super().__init__(player, opponent_party[0], type_chart, ai, move_source)
+        self._reserve: List[Creature] = list(opponent_party[1:])
+        self._trainer_name = trainer_name
+        self._trainer_title = trainer_title
+        self._prize = prize
+        self._defeat_lines = tuple(defeat_lines)
+        self._flags = flags
+        self._defeat_flag = defeat_flag
+
+    @property
+    def trainer_name(self) -> str:
+        return self._trainer_name
+
+    @property
+    def defeat_lines(self) -> Tuple[str, ...]:
+        """What the trainer says after losing (shown in the overworld)."""
+        return self._defeat_lines
+
+    @property
+    def remaining(self) -> int:
+        """Creatures the trainer still has, including the one out now."""
+        return len(self._reserve) + (0 if self._opponent.is_fainted else 1)
+
+    @property
+    def can_flee(self) -> bool:
+        return False
+
+    @property
+    def can_catch(self) -> bool:
+        return False
+
+    @property
+    def intro_message(self) -> str:
+        who = f"{self._trainer_title} {self._trainer_name}"
+        return f"{who} wants to battle! {self._trainer_name} sent out {self._opponent.name}!"
+
+    @property
+    def _xp_multiplier(self) -> float:
+        return 1.5
+
+    def _on_opponent_fainted(self) -> List[BattleEvent]:
+        if self._reserve:
+            self._opponent = self._reserve.pop(0)
+            self._opponent.reset_battle_stages()
+            return [BattleEvent(EventType.OPPONENT_SENT,
+                                f"{self._trainer_name} sent out {self._opponent.name}!",
+                                {"uid": self._opponent.uid, "species_id": self._opponent.species_id})]
+        self._state = BattleState.WON
+        events = [BattleEvent(EventType.BATTLE_WON,
+                              f"You defeated {self._trainer_title} {self._trainer_name}!")]
+        if self._prize > 0:
+            self._player.earn(self._prize)
+            events.append(BattleEvent(EventType.PRIZE_MONEY, f"You got ${self._prize} for winning!",
+                                      {"amount": self._prize}))
+        if self._flags is not None and self._defeat_flag:
+            self._flags.set(self._defeat_flag)
+        return events + self._victory_extras()
+
+    def _victory_extras(self) -> List[BattleEvent]:
+        """Anything extra on winning (GymBattle adds a badge)."""
+        return []
+
+
+class GymBattle(TrainerBattle):
+    """A gym leader battle: winning also earns the gym's badge."""
+
+    def __init__(self, *args, badge: str, badge_case, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._badge = badge
+        self._badge_case = badge_case
+
+    @property
+    def badge(self) -> str:
+        return self._badge
+
+    def _victory_extras(self) -> List[BattleEvent]:
+        if not self._badge_case.add(self._badge):
+            return []
+        return [BattleEvent(EventType.BADGE_EARNED,
+                            f"{self._player.name} received the {self._badge}!",
+                            {"badge": self._badge})]

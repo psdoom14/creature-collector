@@ -280,6 +280,14 @@ class Explorer:
         target = self.facing_target()
         return target.interact(state, self._facing) if target else None
 
+    def spotted_by(self, state) -> Optional[Interactable]:
+        """The first entity on this map that notices the player (a trainer who sees you)."""
+        m = self.current_map
+        for entity in m.entities:
+            if entity.is_present(state) and entity.notices(state, m, self._location):
+                return entity
+        return None
+
     def roll_encounter(self, rng: Optional[random.Random] = None) -> Optional[str]:
         """After a step: the encounter-table key if a wild creature appears, else None."""
         m = self.current_map

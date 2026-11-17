@@ -6,19 +6,26 @@
     └── Character (abstract)         has a name and a facing direction
         └── NPC                      turns to face you and talks
             ├── Healer               talks, then heals your whole party
-            └── Professor            different lines before/after you have a starter, gives a gift once
+            ├── Professor            different lines before/after you have a starter, gives a gift once
+            └── TrainerNPC           spots you in its line of sight and battles (TrainerBattle)
+                ├── RivalTrainer     team built around the starter the rival picked
+                └── GymLeader        battles with a smart AI and awards a badge (GymBattle)
 
 ``interact(state, player_facing)`` gets the whole GameState (trainer, flags, ...),
 so each subclass decides what it needs. The overworld just calls it.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence, Tuple, Type
 
 from src.model.direction import Direction
 
 if TYPE_CHECKING:
+    from src.model.battle import TrainerBattle
+    from src.model.creature import Creature
     from src.model.game_state import GameState
+    from src.model.type_chart import TypeChart
+    from src.model.world import Location, WorldMap
 
 
 @dataclass(frozen=True)
@@ -64,6 +71,10 @@ class Interactable(ABC):
     def is_present(self, state: "GameState") -> bool:
         """Whether this is drawn on the map (a taken starter ball isn't)."""
         return True
+
+    def notices(self, state: "GameState", world_map: "WorldMap", player: "Location") -> bool:
+        """Whether this reacts to the player just by being seen (trainers do)."""
+        return False
 
     @abstractmethod
     def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
@@ -231,3 +242,165 @@ class Professor(NPC):
         return cls(data["x"], data["y"], data.get("name", "PROFESSOR"), data.get("lines", []),
                    data.get("after_lines", []), data.get("gift"), data.get("gift_lines", []),
                    Direction.from_name(data.get("facing", "down")), data.get("palette", "brown"))
+
+
+CreatureFactory = Callable[[int, int], "Creature"]
+
+
+class TrainerNPC(NPC):
+    """A trainer who challenges you when you walk into their line of sight (or talk to them)."""
+    KIND = "trainer"
+
+    def __init__(self, x: int, y: int, name: str, lines: Sequence[str], trainer_id: str,
+                 title: str = "TRAINER", party: Sequence[Sequence[int]] = (), prize: int = 0,
+                 sight: int = 3, defeat_lines: Sequence[str] = (), after_lines: Sequence[str] = (),
+                 facing: Direction = Direction.DOWN, palette: str = "blue"):
+        super().__init__(x, y, name, lines, facing, palette)
+        self._trainer_id = trainer_id
+        self._title = title
+        self._party = [tuple(entry) for entry in party]
+        self._prize = prize
+        self._sight = sight
+        self._defeat_lines = tuple(defeat_lines) or ("You're strong!",)
+        self._after_lines = tuple(after_lines) or self._defeat_lines
+
+    # --- data ------------------------------------------------------------
+    @property
+    def trainer_id(self) -> str:
+        return self._trainer_id
+
+    @property
+    def title(self) -> str:
+        return self._title
+
+    @property
+    def sight(self) -> int:
+        return self._sight
+
+    @property
+    def defeat_flag(self) -> str:
+        return f"defeated_{self._trainer_id}"
+
+    def is_defeated(self, state: "GameState") -> bool:
+        return state.flags.has(self.defeat_flag)
+
+    # --- behaviour ---------------------------------------------------------
+    def notices(self, state: "GameState", world_map: "WorldMap", player: "Location") -> bool:
+        """True if the player stands within ``sight`` tiles straight ahead, with nothing in between."""
+        if self._sight <= 0 or self.is_defeated(state):
+            return False
+        x, y = self._x, self._y
+        for _ in range(self._sight):
+            x, y = x + self._facing.dx, y + self._facing.dy
+            if (x, y) == (player.x, player.y):
+                return True
+            if not world_map.in_bounds(x, y) or not world_map.is_passable(x, y):
+                return False
+        return False
+
+    def interact(self, state: "GameState", player_facing: Direction) -> Interaction:
+        self.turn_to(player_facing)
+        if self.is_defeated(state):
+            return Interaction(self._name, self._after_lines)
+        return self.challenge()
+
+    def challenge(self) -> Interaction:
+        """The pre-battle speech, with an instruction to start the battle afterwards."""
+        return Interaction(self._name, self._lines, effect="start_battle", data={"trainer": self})
+
+    def _party_spec(self, state: "GameState") -> List[Tuple[int, int]]:
+        """(species id, level) for each creature this trainer uses."""
+        return list(self._party)
+
+    def _make_ai(self, type_chart: "TypeChart"):
+        from src.model.battle_ai import RandomAI
+        return RandomAI()
+
+    def _battle_class(self):
+        from src.model.battle import TrainerBattle
+        return TrainerBattle
+
+    def _battle_kwargs(self, state: "GameState") -> Dict[str, Any]:
+        """Extra arguments for the battle class (GymLeader adds the badge)."""
+        return {}
+
+    def build_battle(self, state: "GameState", type_chart: "TypeChart",
+                     creature_factory: CreatureFactory, move_source=None) -> "TrainerBattle":
+        """Factory method: each trainer subclass builds the right kind of battle."""
+        party = [creature_factory(species, level) for species, level in self._party_spec(state)]
+        battle_cls = self._battle_class()
+        return battle_cls(
+            state.trainer, party, type_chart,
+            trainer_name=self._name, trainer_title=self._title, prize=self._prize,
+            defeat_lines=self._defeat_lines, flags=state.flags, defeat_flag=self.defeat_flag,
+            ai=self._make_ai(type_chart), move_source=move_source,
+            **self._battle_kwargs(state),
+        )
+
+    @classmethod
+    def _kwargs_from_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        return dict(
+            x=data["x"], y=data["y"], name=data.get("name", "TRAINER"), lines=data.get("lines", []),
+            trainer_id=data["id"], title=data.get("title", "TRAINER"), party=data.get("party", []),
+            prize=data.get("prize", 0), sight=data.get("sight", 3),
+            defeat_lines=data.get("defeat_lines", []), after_lines=data.get("after_lines", []),
+            facing=Direction.from_name(data.get("facing", "down")), palette=data.get("palette", "blue"),
+        )
+
+    @classmethod
+    def _from_data(cls, data: Dict[str, Any]) -> "TrainerNPC":
+        return cls(**cls._kwargs_from_data(data))
+
+
+class RivalTrainer(TrainerNPC):
+    """The rival: leads with the starter they took in the lab."""
+    KIND = "rival"
+
+    def __init__(self, *args, starter_level: int = 5, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._starter_level = starter_level
+
+    def _party_spec(self, state: "GameState") -> List[Tuple[int, int]]:
+        lead = state.rival_starter or 1
+        return [(lead, self._starter_level)] + super()._party_spec(state)
+
+    def _make_ai(self, type_chart: "TypeChart"):
+        from src.model.battle_ai import SmartAI
+        return SmartAI(type_chart, randomness=0.5)
+
+    @classmethod
+    def _from_data(cls, data: Dict[str, Any]) -> "RivalTrainer":
+        kwargs = cls._kwargs_from_data(data)
+        kwargs.setdefault("palette", "purple")
+        return cls(starter_level=data.get("starter_level", 5), **kwargs)
+
+
+class GymLeader(TrainerNPC):
+    """A gym leader: talk to them to battle; winning earns their badge."""
+    KIND = "gym_leader"
+
+    def __init__(self, *args, badge: str = "BADGE", **kwargs):
+        kwargs.setdefault("sight", 0)
+        super().__init__(*args, **kwargs)
+        self._badge = badge
+
+    @property
+    def badge(self) -> str:
+        return self._badge
+
+    def _make_ai(self, type_chart: "TypeChart"):
+        from src.model.battle_ai import SmartAI
+        return SmartAI(type_chart)
+
+    def _battle_class(self):
+        from src.model.battle import GymBattle
+        return GymBattle
+
+    def _battle_kwargs(self, state: "GameState") -> Dict[str, Any]:
+        return {"badge": self._badge, "badge_case": state.badge_case}
+
+    @classmethod
+    def _from_data(cls, data: Dict[str, Any]) -> "GymLeader":
+        kwargs = cls._kwargs_from_data(data)
+        kwargs["sight"] = data.get("sight", 0)
+        return cls(badge=data.get("badge", "BADGE"), **kwargs)

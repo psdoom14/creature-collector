@@ -83,15 +83,67 @@
       ]
     },
     {
-      "kind": "npc",
+      "kind": "trainer",
+      "id": "route1_leo",
       "x": 13,
       "y": 10,
       "name": "LEO",
+      "title": "YOUNGSTER",
       "facing": "left",
       "palette": "blue",
+      "sight": 4,
+      "party": [
+        [
+          19,
+          4
+        ],
+        [
+          16,
+          4
+        ]
+      ],
+      "prize": 80,
       "lines": [
-        "I've been training here all morning!",
-        "Creatures get stronger every time they win."
+        "LEO: Hey, you! You've got a creature too?",
+        "LEO: I've been training all morning. Let's battle!"
+      ],
+      "defeat_lines": [
+        "LEO: No way! My training wasn't enough..."
+      ],
+      "after_lines": [
+        "LEO: Creatures get stronger every time they win.",
+        "LEO: I'll catch up to you!"
+      ]
+    },
+    {
+      "kind": "rival",
+      "id": "route1_juno",
+      "x": 8,
+      "y": 2,
+      "name": "JUNO",
+      "title": "RIVAL",
+      "facing": "left",
+      "palette": "purple",
+      "sight": 2,
+      "starter_level": 6,
+      "party": [
+        [
+          16,
+          4
+        ]
+      ],
+      "prize": 300,
+      "lines": [
+        "JUNO: There you are! I've been waiting.",
+        "JUNO: Let's see whose partner is stronger. Here I come!"
+      ],
+      "defeat_lines": [
+        "JUNO: Huh?! I picked the type with the advantage, too...",
+        "JUNO: Fine. Next time I'll win!"
+      ],
+      "after_lines": [
+        "JUNO: The gym in Brookhaven is tough.",
+        "JUNO: Heal up before you go in!"
       ]
     },
     {

@@ -142,6 +142,14 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - Story flags (`StoryFlags`) are saved; warps can require a flag — the exit north of Fernvale is locked until `has_starter`, with MIA's warning.
 - `interact()` now receives the whole `GameState`, so entities can read flags as well as the trainer.
 
+**Phase 6 done (2026-11-17).** 136 tests pass (+16 in `tests/test_trainers.py`).
+- `Battle` → `TrainerBattle` → `GymBattle`. Trainer battles: no running or catching, the trainer sends out their next creature, 1.5× XP, prize money, and a defeat flag; gym battles also add a badge. `_resolve_faints()` now calls the `_on_opponent_fainted()` hook that each subclass overrides.
+- `BattleAI` → `SmartAI`: scores moves by power × accuracy × same-type bonus × type effectiveness; status effects score themselves through a new polymorphic `MoveEffect.ai_score()`.
+- `NPC` → `TrainerNPC` → `RivalTrainer` / `GymLeader`. Trainers spot you in their line of sight (`Interactable.notices()`, overridden by `TrainerNPC`), show "!", talk, then battle. `build_battle()` is a factory method: each subclass builds its own battle type and AI. The rival's team leads with the starter they picked in the lab.
+- `BadgeCase` saved with the game (old saves with a badge count still load).
+- Content: YOUNGSTER LEO on Route 1, RIVAL JUNO at the top of Route 1 (can't be walked past), and the **Brookhaven Gym** interior with GYM TRAINER KIT and LEADER WREN (Pidgey Lv8, Pidgeotto Lv10) who gives the **GALE BADGE**.
+- New TRAINER CARD in the pause menu (name, money, Pokédex, time, badges).
+
 ### Demo world (original names to be decided)
 - **Town 1** — player's home, professor's lab, exit north.
 - **Route** — tall grass, a couple of trainers, signs.

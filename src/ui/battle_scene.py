@@ -34,6 +34,8 @@ class BattleScene(Scene):
 
     def __init__(self, engine, wild_creature: Creature, battle: Optional[Battle] = None):
         super().__init__(engine)
+        # The opposing creature currently drawn. In trainer battles it changes when an
+        # OPPONENT_SENT event is played (not before, so the sprite swaps with the message).
         self.wild_creature = wild_creature
         self.battle: Battle = battle or WildBattle(
             player=self.engine.game_state.trainer,
@@ -138,6 +140,12 @@ class BattleScene(Scene):
 
         elif kind is EventType.CREATURE_SENT:
             self._show_player_creature(self.battle.player_creature)
+
+        elif kind is EventType.OPPONENT_SENT:
+            self.wild_creature = self.battle.opponent
+            self.enemy_y_offset = 0.0
+            self.wild_hp_bar.set_hp(self.wild_creature.current_hp, self.wild_creature.max_hp, immediate=True)
+            self.engine.game_state.pokedex.register_seen(self.wild_creature.species_id)
 
         elif kind is EventType.CAUGHT:
             self.engine.game_state.pokedex.register_caught(self.wild_creature.species_id)
@@ -289,6 +297,10 @@ class BattleScene(Scene):
             if hasattr(overworld, "respawn_after_blackout"):
                 overworld.respawn_after_blackout(money_lost)
             return
+
+        overworld = engine.current_scene
+        if hasattr(overworld, "on_battle_end"):
+            overworld.on_battle_end(self.battle)
 
         ready = list(trainer.party.ready_to_evolve())
         if ready:
