@@ -11,7 +11,6 @@ from typing import List, Optional, Tuple
 import pygame
 
 from src.model.direction import Direction
-from src.model.battle import TrainerBattle, BattleState
 from src.model.entities import StarterBall, TrainerNPC
 from src.model.story import give_starter, pick_rival_starter
 from src.model.world import Explorer, Location, StepResult
@@ -311,8 +310,8 @@ class OverworldScene(Scene):
 
     def on_battle_end(self, battle) -> None:
         """Called by the battle scene when a battle the player didn't lose is over."""
-        if isinstance(battle, TrainerBattle) and battle.state is BattleState.WON:
-            self._open_dialogue(battle.defeat_lines)
+        if battle.after_battle_lines:          # polymorphic: wild battles have none
+            self._open_dialogue(battle.after_battle_lines)
 
     # ------------------------------------------------------------------
     # Choosing a starter

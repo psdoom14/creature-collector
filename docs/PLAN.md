@@ -150,6 +150,11 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - Content: YOUNGSTER LEO on Route 1, RIVAL JUNO at the top of Route 1 (can't be walked past), and the **Brookhaven Gym** interior with GYM TRAINER KIT and LEADER WREN (Pidgey Lv8, Pidgeotto Lv10) who gives the **GALE BADGE**.
 - New TRAINER CARD in the pause menu (name, money, Pokédex, time, badges).
 
+**Phase 7 done (2026-11-17).** 136 tests pass.
+- Balance: simulated about 60 playthroughs per starter. The original gym (Pidgey 8 / Pidgeotto 10) was unwinnable at natural levels (about Lv 7–8). It's now KIT Pidgey 5 and WREN Pidgey 6 + Pidgeotto 7, giving about 90% (Charmander) and 80% (Squirtle). Bulbasaur needs a second creature, so a rare Pikachu (10%) was added to Route 1 and IVY hints at it.
+- `Battle.after_battle_lines` replaces the overworld's `isinstance(battle, TrainerBattle)` check.
+- New [docs/OOP.md](OOP.md): the four pillars with 60+ links to exact lines, design patterns, and four Mermaid UML class diagrams. README and HANDOVER rewritten for the finished demo; the screenshot script runs from any folder.
+
 ### Demo world (original names to be decided)
 - **Town 1** — player's home, professor's lab, exit north.
 - **Route** — tall grass, a couple of trainers, signs.

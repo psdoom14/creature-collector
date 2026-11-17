@@ -1,10 +1,17 @@
 import os
-import pygame
 import sys
+from pathlib import Path
+
+# Run from anywhere: put the project root on the import path and work from there.
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+os.chdir(ROOT)
 
 # Ensure headless pygame
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 os.environ["LC_ALL"] = "C.UTF-8"
+
+import pygame
 
 from src.ui.engine import GameEngine
 from src.ui.overworld_scene import OverworldScene

@@ -105,6 +105,11 @@ class Battle(ABC):
         """Bonus XP for this kind of battle (trainers give more than wild creatures)."""
         return 1.0
 
+    @property
+    def after_battle_lines(self) -> Tuple[str, ...]:
+        """What someone says in the overworld once the battle is over (nothing, for wild battles)."""
+        return ()
+
     # ------------------------------------------------------------------
     # Read-only state
     # ------------------------------------------------------------------
@@ -526,6 +531,10 @@ class TrainerBattle(Battle):
     def defeat_lines(self) -> Tuple[str, ...]:
         """What the trainer says after losing (shown in the overworld)."""
         return self._defeat_lines
+
+    @property
+    def after_battle_lines(self) -> Tuple[str, ...]:
+        return self._defeat_lines if self._state is BattleState.WON else ()
 
     @property
     def remaining(self) -> int:
