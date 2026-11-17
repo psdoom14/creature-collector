@@ -56,7 +56,6 @@ A small turn-based creature-collecting RPG in **Python + Pygame**, styled after 
 ```bash
 pip install -r requirements.txt
 python3 main.py              # the game (240×160, scaled 3× to 720×480)
-python3 terminal_demo.py     # text-only battle prototype
 ```
 
 ### Controls
@@ -77,7 +76,6 @@ python3 terminal_demo.py     # text-only battle prototype
 ```
 creature-collector/
 ├── main.py                 launcher (starts at the title screen)
-├── terminal_demo.py        text-only battle prototype
 ├── data/                   all game content as JSON
 │   ├── creatures.json      species, stats, learnsets, evolutions
 │   ├── moves.json  items.json  type_chart.json  encounters.json

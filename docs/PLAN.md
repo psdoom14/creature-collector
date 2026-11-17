@@ -178,7 +178,7 @@ Type-based `Creature` subclasses are removed; type immunities move into `StatusC
 - Test fix: `test_scene_rendering` no longer shuts pygame down for the rest of the run; it clears the image caches instead.
 
 **Demo helpers (2026-11-17).** 176 tests pass (+12 in `tests/test_debug.py`).
-- Route 1 now has all 25 species with equal weight (levels 3–6) so demos show variety. This replaces the balanced table; see HANDOVER section 4.
+- Route 1 now has all 25 species with equal weight (levels 3–6) so demos show variety. This replaces the balanced table; see the README.
 - Debug menu: F1 or ` in the overworld (only while walking). Level up (+1/+5/+10, learning new moves), add any species at a chosen level, remove creatures (never the last), add/remove items (±1, +10, remove all), change money, heal the party; evolutions trigger on close. Model side: `src/model/debug_tools.py` and `Bag.remove()`, all going through the normal public methods.
 
 **Link battles over Wi-Fi (2026-11-17).** 196 tests pass (+20 in `tests/test_link_battle.py`, `tests/test_link_network.py`).
