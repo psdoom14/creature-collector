@@ -8,7 +8,7 @@ This document maps the course's object-oriented concepts to the exact classes an
 - SOLID
 - design patterns
 - exception handling
-- UML use-case, class, sequence, activity and state diagrams
+- UML use-case, class, sequence and activity diagrams
 
 Every reference below is a link to the line in the source.
 
@@ -210,7 +210,7 @@ Proof in tests: [TestPolymorphism](../tests/test_oop_pillars.py#L114).
 | **Inheritance** (is-a) | see section 4 | `GymBattle` is a `TrainerBattle` is a `Battle` |
 | **Realisation** (implements an abstract interface) | a concrete class implements every abstract method | `PhysicalMove` realises `DamagingMove`; `RandomAI` realises `BattleAI` |
 
-The class diagrams in section 10 draw these with the standard UML arrows: `*--` composition, `o--` aggregation, `-->` association, `..>` dependency and `<|--` inheritance.
+The class diagram in section 10 draws these with the standard UML arrows: `*--` composition, `o--` aggregation, `-->` association, `..>` dependency and `<|--` inheritance.
 
 ---
 
@@ -261,7 +261,47 @@ Proof in tests: [tests/test_errors.py](../tests/test_errors.py#L28) checks:
 
 ## 10. UML diagrams
 
-### 10.1 Class diagram — battles
+One diagram of each kind the course asks for. The other relationships are described in sections 4 and 7.
+
+### 10.1 Use-case diagram
+
+```mermaid
+flowchart LR
+    Player(["👤 Player"])
+    subgraph System["Creature Collector"]
+        UC1([Start new game / continue])
+        UC2([Enter name])
+        UC3([Choose starter])
+        UC4([Explore the world])
+        UC5([Talk to people / read signs])
+        UC6([Battle a wild creature])
+        UC7([Catch a creature])
+        UC8([Battle a trainer])
+        UC9([Challenge the gym leader])
+        UC10([Heal at the Healing Center])
+        UC11([Use an item])
+        UC12([View party / Pokédex / trainer card])
+        UC13([Save the game])
+        UC14([Level up / learn a move / evolve])
+        UC15([Buy and sell at the shop])
+        UC16([Link battle with a friend])
+    end
+    Player --- UC1 & UC4 & UC5 & UC10 & UC11 & UC12 & UC13 & UC16
+    UC1 -. include .-> UC2
+    UC2 -. include .-> UC3
+    UC4 -. extend .-> UC6
+    UC4 -. extend .-> UC8
+    UC6 -. extend .-> UC7
+    UC8 -. extend .-> UC9
+    UC6 -. extend .-> UC14
+    UC8 -. extend .-> UC14
+    UC5 -. extend .-> UC10
+    UC5 -. extend .-> UC15
+```
+
+*Mermaid has no dedicated use-case diagram, so this uses a flowchart: ovals are use cases, dotted arrows are «include» / «extend».*
+
+### 10.2 Class diagram — battles
 
 ```mermaid
 classDiagram
@@ -321,238 +361,7 @@ classDiagram
     Battle --> Creature : opponent
 ```
 
-### 10.2 Class diagram — creatures, moves, effects, statuses and items
-
-```mermaid
-classDiagram
-    direction TB
-    class Creature {
-        -int _hp
-        -int _level
-        -int _xp
-        -List~Move~ _moves
-        -StatusCondition _status
-        +take_damage(amount) int
-        +heal(amount) int
-        +gain_xp(amount) dict
-        +learn_move(move, slot) bool
-        +apply_status(status) bool
-        +evolve(species_data) Creature
-    }
-    class Move {
-        <<abstract>>
-        -int _current_pp
-        +use() bool
-        +is_damaging()* bool
-    }
-    class DamagingMove {
-        <<abstract>>
-        +attack_stat(user)* int
-        +defense_stat(target)* int
-    }
-    class PhysicalMove
-    class SpecialMove
-    class StatusMove
-    class MoveEffect {
-        <<abstract>>
-        +apply(user, target)* List~BattleEvent~
-        +ai_score(user, target) float
-    }
-    class InflictStatus
-    class HealUser
-    class ChangeStat
-    class StatusCondition {
-        <<abstract>>
-        +can_afflict(creature) bool
-        +before_move(creature)
-        +on_turn_end(creature)
-        +modify_speed(speed) int
-    }
-    class Burn
-    class Poison
-    class Paralysis
-    class Sleep
-    class Item {
-        <<abstract>>
-        -int _quantity
-        +use(target) str
-        +use_in_battle(battle) List~BattleEvent~
-        +usable_in_field bool
-        #_apply(target)* str
-    }
-    class HealingItem
-    class StatusCureItem
-    class ReviveItem
-    class CatchBall
-    Creature "1" *-- "0..4" Move
-    Creature "1" o-- "0..1" StatusCondition
-    Move "1" o-- "0..1" MoveEffect
-    Move <|-- DamagingMove
-    Move <|-- StatusMove
-    DamagingMove <|-- PhysicalMove
-    DamagingMove <|-- SpecialMove
-    MoveEffect <|-- InflictStatus
-    MoveEffect <|-- HealUser
-    MoveEffect <|-- ChangeStat
-    StatusCondition <|-- Burn
-    StatusCondition <|-- Poison
-    StatusCondition <|-- Paralysis
-    StatusCondition <|-- Sleep
-    Item <|-- HealingItem
-    Item <|-- StatusCureItem
-    Item <|-- ReviveItem
-    Item <|-- CatchBall
-```
-
-### 10.3 Class diagram — world and map entities
-
-```mermaid
-classDiagram
-    direction TB
-    class World {
-        +get(map_id) WorldMap
-    }
-    class WorldMap {
-        +is_passable(x, y) bool
-        +warp_at(x, y) Warp
-        +entity_at(x, y) Interactable
-    }
-    class Explorer {
-        -Location _location
-        -Direction _facing
-        +step(direction) StepResult
-        +interact(state) Interaction
-        +spotted_by(state) Interactable
-        +roll_encounter(rng) str
-    }
-    class Interactable {
-        <<abstract>>
-        +interact(state, facing)* Interaction
-        +notices(state, map, player) bool
-        +is_present(state) bool
-        +is_gone(flags) bool
-        +from_data(data)$ Interactable
-    }
-    class Sign
-    class StarterBall
-    class ItemBall {
-        +is_gone(flags) bool
-    }
-    class Character {
-        <<abstract>>
-        +turn_to(direction)
-    }
-    class NPC
-    class Healer
-    class Professor
-    class GiftGiver
-    class Shopkeeper {
-        +stock
-    }
-    class TrainerNPC {
-        +build_battle(...) TrainerBattle
-        #_party_spec(state)
-        #_make_ai(chart) BattleAI
-    }
-    class RivalTrainer
-    class GymLeader
-    World "1" *-- "many" WorldMap
-    WorldMap "1" *-- "many" Interactable
-    WorldMap "1" *-- "many" Warp
-    Explorer --> World
-    Interactable <|-- Sign
-    Interactable <|-- StarterBall
-    Interactable <|-- ItemBall
-    Interactable <|-- Character
-    Character <|-- NPC
-    NPC <|-- Healer
-    NPC <|-- Professor
-    NPC <|-- GiftGiver
-    NPC <|-- Shopkeeper
-    NPC <|-- TrainerNPC
-    TrainerNPC <|-- RivalTrainer
-    TrainerNPC <|-- GymLeader
-    TrainerNPC ..> TrainerBattle : builds
-    GymLeader ..> GymBattle : builds
-```
-
-### 10.4 Class diagram — player state (composition)
-
-```mermaid
-classDiagram
-    direction LR
-    class GameState {
-        +Location location
-        +StoryFlags flags
-        +BadgeCase badge_case
-        +int rival_starter
-        +to_dict() dict
-        +from_dict(data, loader)$ GameState
-    }
-    class Trainer {
-        -int _money
-        +spend(amount) bool
-        +receive_creature(c) str
-        +black_out() int
-    }
-    class Party {
-        +MAX_PARTY_SIZE = 6
-        +get_active() Creature
-        +heal_all()
-    }
-    class PCBox
-    class Bag
-    class Pokedex
-    class StoryFlags
-    class BadgeCase
-    GameState *-- Trainer
-    GameState *-- Pokedex
-    GameState *-- StoryFlags
-    GameState *-- BadgeCase
-    Trainer *-- Party
-    Trainer *-- Bag
-    Trainer *-- PCBox
-    Party o-- "1..6" Creature
-    PCBox o-- "many" Creature
-    Bag o-- "many" Item
-```
-
-### 10.5 Use-case diagram
-
-```mermaid
-flowchart LR
-    Player(["👤 Player"])
-    subgraph System["Creature Collector"]
-        UC1([Start new game / continue])
-        UC2([Enter name])
-        UC3([Choose starter])
-        UC4([Explore the world])
-        UC5([Talk to people / read signs])
-        UC6([Battle a wild creature])
-        UC7([Catch a creature])
-        UC8([Battle a trainer])
-        UC9([Challenge the gym leader])
-        UC10([Heal at the Healing Center])
-        UC11([Use an item])
-        UC12([View party / Pokédex / trainer card])
-        UC13([Save the game])
-        UC14([Level up / learn a move / evolve])
-    end
-    Player --- UC1 & UC4 & UC5 & UC10 & UC11 & UC12 & UC13
-    UC1 -. include .-> UC2
-    UC2 -. include .-> UC3
-    UC4 -. extend .-> UC6
-    UC4 -. extend .-> UC8
-    UC6 -. extend .-> UC7
-    UC8 -. extend .-> UC9
-    UC6 -. extend .-> UC14
-    UC8 -. extend .-> UC14
-    UC5 -. extend .-> UC10
-```
-
-*Mermaid has no dedicated use-case diagram, so this uses a flowchart: ovals are use cases, dotted arrows are «include» / «extend».*
-
-### 10.6 Sequence diagram — one battle turn (player uses a move)
+### 10.3 Sequence diagram — one battle turn (player uses a move)
 
 ```mermaid
 sequenceDiagram
@@ -591,57 +400,7 @@ sequenceDiagram
     BS-->>Player: "What will you do?"
 ```
 
-### 10.7 Sequence diagram — choosing a starter
-
-```mermaid
-sequenceDiagram
-    actor Player
-    participant OW as OverworldScene
-    participant EX as Explorer
-    participant SB as StarterBall
-    participant ST as story module
-    participant GS as GameState
-
-    Player->>OW: press Z facing a ball
-    OW->>EX: interact(state)
-    EX->>SB: interact(state, facing)
-    SB-->>OW: Interaction(effect="offer_starter", species)
-    OW-->>Player: "Do you want CHARMANDER?" YES / NO
-    Player->>OW: YES
-    OW->>ST: pick_rival_starter(species, starters, type_chart)
-    ST-->>OW: rival's species
-    OW->>ST: give_starter(state, creature, rival)
-    ST->>GS: trainer.receive_creature(), pokedex, flags, rival_starter
-    OW-->>Player: "ALEX received CHARMANDER!" / rival's line
-```
-
-### 10.8 Activity diagram — playing the demo
-
-```mermaid
-flowchart TD
-    A([Start]) --> B[Title screen]
-    B -->|CONTINUE| L[Load save]
-    L -->|damaged| B
-    L -->|ok| W
-    B -->|NEW GAME| C[Professor's intro]
-    C --> D[Type name]
-    D --> E[Walk to the lab]
-    E --> F[Choose a starter]
-    F --> W[Explore]
-    W --> G{Step into tall grass?}
-    G -->|encounter| H[Wild battle]
-    W --> T{Seen by a trainer?}
-    T -->|yes| I[Trainer battle]
-    W --> J{Enter the gym?}
-    J -->|talk to leader| K[Gym battle]
-    H & I & K --> R{Result}
-    R -->|won| X[Gain XP: maybe learn a move or evolve] --> W
-    R -->|lost| Y[Black out: lose half the money, wake at the healing center] --> W
-    R -->|caught / fled| W
-    K -->|won| Z([GALE BADGE: demo complete])
-```
-
-### 10.9 Activity diagram — one battle turn
+### 10.4 Activity diagram — one battle turn
 
 ```mermaid
 flowchart TD
@@ -670,24 +429,6 @@ flowchart TD
     A -->|RUN| U{can_flee and lucky?}
     U -->|yes| FLED([Fled])
     U -->|no| FREE
-```
-
-### 10.10 State diagram — battle states
-
-```mermaid
-stateDiagram-v2
-    [*] --> SELECTING_ACTION
-    SELECTING_ACTION --> SELECTING_ACTION: turn played, nobody fainted
-    SELECTING_ACTION --> SELECTING_SWITCH: player's creature fainted, others left
-    SELECTING_SWITCH --> SELECTING_ACTION: switch_creature()
-    SELECTING_ACTION --> WON: last opponent fainted
-    SELECTING_ACTION --> LOST: all player's creatures fainted
-    SELECTING_ACTION --> CAUGHT: ball succeeded (wild only)
-    SELECTING_ACTION --> FLED: ran away (wild only)
-    WON --> [*]
-    LOST --> [*]
-    CAUGHT --> [*]
-    FLED --> [*]
 ```
 
 ---
