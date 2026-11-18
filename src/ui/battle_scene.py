@@ -32,6 +32,7 @@ HP_EVENTS = (EventType.DAMAGE_DEALT, EventType.STATUS_DAMAGE, EventType.ITEM_USE
 
 class BattleScene(Scene):
     """Complete GBA graphical battle scene."""
+    MUSIC = "battle"
 
     def __init__(self, engine, wild_creature: Creature, battle: Optional[Battle] = None):
         super().__init__(engine)

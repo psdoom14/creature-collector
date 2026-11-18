@@ -18,6 +18,7 @@ SHOWCASE_SPECIES = 6
 
 class TitleScene(Scene):
     """First screen of the game. Stages: PRESS_START -> MENU."""
+    MUSIC = "menu"
 
     def __init__(self, engine):
         super().__init__(engine)

@@ -33,6 +33,7 @@ AFTER_NAME = [
 
 class IntroScene(Scene):
     """Modes: TALK (professor speaking), NAME (typing the player's name)."""
+    MUSIC = "menu"
 
     MAX_NAME = 8
 

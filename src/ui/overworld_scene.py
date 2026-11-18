@@ -46,6 +46,7 @@ MOVE_KEYS = {
 class OverworldScene(Scene):
     """Modes: WALK (free movement), DIALOGUE (text box open), MENU (pause menu open),
     CONFIRM_STARTER (YES/NO over a starter ball), SPOTTED (a trainer just saw you: "!")."""
+    MUSIC = "world"
 
     SPOTTED_SECONDS = 0.7
 

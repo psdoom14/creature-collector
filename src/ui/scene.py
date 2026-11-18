@@ -6,6 +6,10 @@ from typing import Optional, Any
 class Scene(ABC):
     """Abstract base class for all game screens (Overworld, Battle, Menu, etc.)."""
 
+    #: Background music for this screen ("menu", "world", "battle"), or None to keep
+    #: whatever is already playing (pop-up menus keep the world music going).
+    MUSIC: Optional[str] = None
+
     def __init__(self, engine: Any):
         self.engine = engine
 

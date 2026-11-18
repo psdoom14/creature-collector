@@ -1,9 +1,11 @@
 """Core Pygame engine, scene manager, and display scaler."""
+import os
 import pygame
 import sys
 from typing import List, Optional
 from pathlib import Path
 
+from src.ui.music import MusicPlayer
 from src.ui.scene import Scene
 from src.data_loader import DataLoader
 from src.model.game_state import GameState
@@ -33,6 +35,7 @@ class GameEngine:
         self._clear_image_caches()
         self.native_surface = pygame.Surface((self.NATIVE_WIDTH, self.NATIVE_HEIGHT))
 
+        self.music = MusicPlayer(enabled=os.environ.get("SDL_AUDIODRIVER") != "dummy")
         self.clock = pygame.time.Clock()
         self.is_running = False
 
@@ -114,6 +117,10 @@ class GameEngine:
         F1 or ` opens the debug menu, but only where the current scene allows it
         (the overworld while walking), so a battle or menu is never interrupted.
         """
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_F2:
+            muted = self.music.toggle_mute()
+            print("Music off" if muted else "Music on")
+            return True
         if event.type != pygame.KEYDOWN or event.key not in self.DEBUG_KEYS:
             return False
         if not getattr(self.current_scene, "allows_debug", False):
@@ -131,6 +138,14 @@ class GameEngine:
             self.current_scene.on_exit()
         self.scene_stack.append(scene)
         scene.on_enter(**kwargs)
+        self._update_music()
+
+    def _update_music(self) -> None:
+        """Play the track of the topmost screen that names one."""
+        for scene in reversed(self.scene_stack):
+            if scene.MUSIC:
+                self.music.play(scene.MUSIC)
+                return
 
     def pop_scene(self) -> Optional[Scene]:
         if self.scene_stack:
@@ -138,8 +153,17 @@ class GameEngine:
             old.on_exit()
             if self.current_scene:
                 self.current_scene.on_enter()
+            self._update_music()
             return old
         return None
+
+    def replace_scene(self, scene: Scene, **kwargs) -> None:
+        """Swap the top screen for ``scene`` in one step (the music changes at most once)."""
+        if self.scene_stack:
+            self.scene_stack.pop().on_exit()
+        self.scene_stack.append(scene)
+        scene.on_enter(**kwargs)
+        self._update_music()
 
     def change_scene(self, scene: Scene, **kwargs) -> None:
         while self.scene_stack:
@@ -147,6 +171,7 @@ class GameEngine:
             old.on_exit()
         self.scene_stack.append(scene)
         scene.on_enter(**kwargs)
+        self._update_music()
 
     def run(self) -> None:
         self.is_running = True

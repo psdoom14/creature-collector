@@ -60,6 +60,7 @@ class TrainerTransition(Transition):
 
 class TransitionScene(Scene):
     """Plays ``transition`` over a frozen frame, then replaces itself with ``next_scene``."""
+    MUSIC = "battle"
 
     def __init__(self, engine, frame: pygame.Surface, next_scene: Scene, transition: Transition):
         super().__init__(engine)
@@ -76,8 +77,7 @@ class TransitionScene(Scene):
         self.t += dt
         if self.t >= self.transition.duration and not self.finished:
             self.finished = True
-            self.engine.pop_scene()
-            self.engine.push_scene(self.next_scene)
+            self.engine.replace_scene(self.next_scene)
 
     def draw(self, surface: pygame.Surface) -> None:
         self.transition.draw(surface, self.frame, min(1.0, self.t / self.transition.duration))
