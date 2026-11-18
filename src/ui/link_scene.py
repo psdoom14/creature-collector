@@ -162,10 +162,14 @@ class LinkMenuScene(Scene):
                      "HOST: wait for your friend to join.",
                      "JOIN: type the host's address."]
         elif self.mode == "HOSTING":
+            info = pygame.Rect(4, 26, 232, 130)   # addresses + the firewall tip need room
             dots = "." * (1 + int(self.timer * 2) % 3)
             addresses = self._addresses
             lines = [f"Your address: {addresses[0]}"] + [f"      or: {a}" for a in addresses[1:3]]
-            lines += [f"Port {self.port}. Waiting for a friend{dots}", "X: cancel"]
+            lines += [f"Port {self.port}. Waiting for a friend{dots}",
+                      "Friend can't join? This laptop's firewall",
+                      "may block it: allow the port, or swap",
+                      "so the other laptop hosts.  X: cancel"]
         elif self.mode == "ENTER_ADDRESS":
             cursor = "_" if int(self.timer * 2) % 2 == 0 else ""
             box = pygame.Rect(4, 26, 232, 52)

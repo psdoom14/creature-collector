@@ -104,6 +104,21 @@ class TestSessions(unittest.TestCase):
         with self.assertRaises(LinkRejected):
             guest_lobby.poll()
 
+    def test_windows_line_endings_give_the_same_fingerprint(self):
+        """Git on Windows rewrites line endings; the same data must still match."""
+        import shutil
+        from src.net.protocol import DATA_FILES, data_fingerprint
+        with tempfile.TemporaryDirectory() as tmp:
+            for name in DATA_FILES:
+                text = (Path(self.loader.data_dir) / name).read_text(encoding="utf-8")
+                (Path(tmp) / name).write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
+            self.assertEqual(data_fingerprint(Path(tmp)), data_fingerprint(Path(self.loader.data_dir)))
+            # ...but different data must not match
+            changed = (Path(tmp) / "items.json").read_text(encoding="utf-8").replace('"price": 300', '"price": 301')
+            (Path(tmp) / "items.json").write_text(changed, encoding="utf-8")
+            self.assertNotEqual(data_fingerprint(Path(tmp)), data_fingerprint(Path(self.loader.data_dir)))
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_empty_team_is_refused(self):
         a, _ = MemoryConnection.pair()
         with self.assertRaises(LinkRejected):

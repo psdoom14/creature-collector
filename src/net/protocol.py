@@ -13,6 +13,7 @@ The guest also sees every event from its own side, so a few event types are
 flipped (the host's "creature sent" is the guest's "opponent sent").
 """
 import hashlib
+import json
 from pathlib import Path
 from typing import Dict, Iterable, List
 
@@ -31,10 +32,17 @@ FLIPPED = {
 
 
 def data_fingerprint(data_dir: Path) -> str:
-    """A short hash of the game data; both players must match or results would differ."""
+    """A short hash of the game data; both players must match or results would differ.
+
+    It hashes the data's *content*, not the file bytes, so the same data gives the same
+    fingerprint on every computer (Git on Windows usually rewrites line endings, which
+    changes the bytes but not the data).
+    """
     digest = hashlib.sha256(str(PROTOCOL_VERSION).encode())
     for name in DATA_FILES:
-        digest.update((Path(data_dir) / name).read_bytes())
+        with open(Path(data_dir) / name, encoding="utf-8") as f:
+            content = json.load(f)
+        digest.update(json.dumps(content, sort_keys=True, separators=(",", ":")).encode("utf-8"))
     return digest.hexdigest()[:16]
 
 
