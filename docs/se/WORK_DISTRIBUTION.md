@@ -88,7 +88,7 @@ Each row gives:
 | Test plan | What will be tested, how and when | Strategy: unit, integration, system; all tests run after every change | — | §7.1 | 22 |
 | Test case specification | Each test with ID, input or steps, expected result | TC1–TC20 with level, expected result, test file, result | All pass | §7.2 | 23 |
 | Levels of testing | Unit, integration, system, acceptance | Unit: classes; integration: shop screen, link over TCP; system: whole game and link battle | 216 automated tests | §7.1 | 22 |
-| Top-down vs bottom-up integration | Bottom-up: test low-level modules first. Top-down: test from the top, with stubs for missing parts | Bottom-up for rules → screens. Top-down for the network, with `MemoryConnection` as a stub | `tests/test_link_battle.py` uses the stub | §7.4 | 24 |
+| Top-down vs bottom-up integration | Bottom-up: test low-level modules first. Top-down: test from the top, with stubs for missing parts | Bottom-up for rules → screens. Top-down for the network, with `MemoryConnection` as a stub | `tests/test_link_network.py` uses the stub | §7.4 | 24 |
 | Alpha and beta testing | Alpha: by the developers in-house. Beta: by users in real conditions | Alpha: team played the whole game each milestone. Beta-style: two real laptops (found the line-ending defect) | TC15 added after the field test | §7.4 | 24 |
 | System testing and debugging | Testing the complete system; finding and fixing the cause of a failure | Whole-game tests; debugging: reproduce → isolate → fix → regression test | TC16–TC20 | §7.3–7.4 | 23–24 |
 | Functional (black-box) testing | Testing against requirements without looking at the code | e.g. "buying without enough money is refused" from FR8 | TC4–TC6 | §7.4 | 24 |
