@@ -1,4 +1,6 @@
-# Creature Collector: work distribution and syllabus guide
+# Creature Collector (GitHost): work distribution and syllabus guide
+
+Registered project name: **GitHost**. The software is the game **Creature Collector**. Any player's laptop can **host** a battle with no server, and the project is developed and versioned with **Git**. The Git branch for this evaluation is `creature-collector(githost)`.
 
 For the team only. This guide shows:
 - who owns which part of the code;

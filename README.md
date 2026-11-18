@@ -1,4 +1,6 @@
-# 🎮 Creature Collector (GBA style)
+# Creature Collector (GitHost)
+
+> Registered for the Software Engineering evaluation as **GitHost**: any player's laptop can host a battle with no server, and the project is developed with Git. Software Engineering report and slides: [`docs/se/`](docs/se/).
 
 A small turn-based creature-collecting RPG in **Python + Pygame**, styled after Game Boy Advance games and built as an **object-oriented programming** project.
 
