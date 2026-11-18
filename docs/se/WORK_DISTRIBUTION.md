@@ -37,7 +37,7 @@ Each row gives:
 
 | Term | Definition | Where and how in our project | Tested / evidence | Report | Slide |
 |---|---|---|---|---|---|
-| Software characteristics | Software is developed, not manufactured; it doesn't wear out but deteriorates as it is changed | We designed for safe change: content in JSON, new behaviour as subclasses | 216 tests rerun after every change | §1.4 | 4 |
+| Software characteristics | Software is developed, not manufactured; it doesn't wear out but deteriorates as it is changed | We designed for safe change: content in JSON, new behaviour as subclasses | 223 tests rerun after every change | §1.4 | 4 |
 | Software components | Self-contained parts with a clear interface | Four modules: data, game rules (`src/model`), network (`src/net`), screens (`src/ui`) | `test_model_layer_has_zero_pygame_imports` keeps them separate | §5.1 | 13 |
 | Software applications | The kind of software built | An interactive game application with networked play | — | §1.1 | 2–3 |
 | SE principles | Abstraction, modularity, separation of concerns, anticipation of change, incremental development, rigour | Abstract classes; four modules; rules never draw; JSON content; nine milestones; a test for every requirement | Test suite, Git history | §1.4 | 4 |
@@ -74,7 +74,7 @@ Each row gives:
 | COCOMO | Estimates effort from size. Basic organic mode: E = 2.4·KLOC^1.05, T = 2.5·E^0.38 | KLOC 7.59 → 20.2 person-months, 7.8 months, 2.6 people. Real schedule was shorter because we re-engineered and reused a prototype | Worked calculation | §9.5 | 21 |
 | Risk management | Identify risks, judge their impact, plan mitigation | Risk table: blocked Wi-Fi, firewall, version mismatch, scope creep, regressions | Mitigations are real features (hotspot advice, fingerprint check, test suite) | §9.3 | 27 |
 | Reliability issues | What can make software fail in use | Crashes mid-save, network drops, mismatched copies, platform differences | TC8, TC9, TC14, TC15, disconnect tests | §8 | 25 |
-| Reliability metrics | MTTF, MTBF, defect counts, failure rate | Defects: 14 in inspection, 2 in the field, 0 open; 216/216 tests pass. MTTF/MTBF not measured: no usage data yet | Test runs | §8.1 | 26 |
+| Reliability metrics | MTTF, MTBF, defect counts, failure rate | Defects: 14 in inspection, 2 in the field, 0 open; 223/223 tests pass. MTTF/MTBF not measured: no usage data yet | Test runs | §8.1 | 26 |
 | Reliability models | Predict future failures from past ones, e.g. Jelinski–Moranda | Not applied: needs failure-time data; listed as future work | — | §8.1 | 26 |
 | Software quality / QA | Meeting requirements; reliability, maintainability, security, usability, performance, portability | Quality table with evidence for each attribute | Linked test cases | §8 | 25 |
 | ISO 9000 | Standards for a quality management system: documented process, records, reviews, corrective action | We follow the ideas (SRS, Git records, inspection, a test for every fix); not certified | — | §8.2 | 26 |
@@ -89,14 +89,14 @@ Each row gives:
 | Code inspection | Reviewing code by reading it, without running it | Read the first prototype line by line: 14 defects found | Each defect has a regression test (`test_bug_regressions.py`) | §7.3, §7.4 | 24 |
 | Test plan | What will be tested, how and when | Strategy: unit, integration, system; all tests run after every change | — | §7.1 | 22 |
 | Test case specification | Each test with ID, input or steps, expected result | TC1–TC20 with level, expected result, test file, result | All pass | §7.2 | 23 |
-| Levels of testing | Unit, integration, system, acceptance | Unit: classes; integration: shop screen, link over TCP; system: whole game and link battle | 216 automated tests | §7.1 | 22 |
+| Levels of testing | Unit, integration, system, acceptance | Unit: classes; integration: shop screen, link over TCP; system: whole game and link battle | 223 automated tests | §7.1 | 22 |
 | Top-down vs bottom-up integration | Bottom-up: test low-level modules first. Top-down: test from the top, with stubs for missing parts | Bottom-up for rules → screens. Top-down for the network, with `MemoryConnection` as a stub | `tests/test_link_network.py` uses the stub | §7.4 | 24 |
 | Alpha and beta testing | Alpha: by the developers in-house. Beta: by users in real conditions | Alpha: team played the whole game each milestone. Beta-style: two real laptops (found the line-ending defect) | TC15 added after the field test | §7.4 | 24 |
 | System testing and debugging | Testing the complete system; finding and fixing the cause of a failure | Whole-game tests; debugging: reproduce → isolate → fix → regression test | TC16–TC20 | §7.3–7.4 | 23–24 |
 | Functional (black-box) testing | Testing against requirements without looking at the code | e.g. "buying without enough money is refused" from FR8 | TC4–TC6 | §7.4 | 24 |
 | Structural (white-box) testing | Testing internal paths, using knowledge of the code | Sleep wearing off, a creature with no moves left, a save failing half-way | `test_bug_regressions.py`, TC8 | §7.4 | 24 |
 | Software testing strategies | The overall approach to testing | Test-first for defects; every change runs all tests; screens tested with simulated keys; no-overflow checks | — | §7.1 | 22 |
-| Software maintenance and reuse | Changing software after delivery; building from existing parts | Corrective, adaptive, perfective, preventive examples. Reuse: `LinkBattle` reuses `Battle`; the link screen reuses the battle screen | — | §10, §10.4 | 28–29 |
+| Software maintenance and reuse | Changing software after delivery; building from existing parts | Corrective, adaptive, perfective (e.g. adding background music), preventive examples. Reuse: `LinkBattle` reuses `Battle`; the link screen reuses the battle screen | — | §10, §10.4 | 28–29 |
 | Structured vs unstructured maintenance | Structured: start from design documents and tests. Unstructured: only code exists | Ours is structured: SRS, UML, decisions and tests exist | — | §10.2 | 29 |
 | Maintenance models | Quick-fix, iterative enhancement, reuse-oriented | Iterative enhancement, with reuse where it fits | — | §10.1 | 29 |
 | Configuration management | Identifying, controlling and recording versions of every artefact | Git for every change; versioned save files; `PROTOCOL_VERSION` and data fingerprint (`src/net/protocol.py`); `requirements.txt` | `test_different_versions_are_refused`, save version tests in `test_errors.py` | §10.3 | 29 |
